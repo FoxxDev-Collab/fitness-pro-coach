@@ -48,9 +48,11 @@ export default async function ClientDetailPage({
     notFound();
   }
 
-  const clientLogs = client.assignments.flatMap((a) => a.logs).sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const clientLogs = client.assignments
+    .flatMap((assignment) => assignment.logs)
+    .sort((logA, logB) =>
+      new Date(logB.date).getTime() - new Date(logA.date).getTime()
+    );
 
   return (
     <div>
