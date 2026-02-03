@@ -48,9 +48,12 @@ export default async function ClientDetailPage({
     notFound();
   }
 
-  const clientLogs = client.assignments
-    .flatMap((assignment) => assignment.logs)
-    .sort((logA, logB) =>
+  type ClientWithRelations = NonNullable<typeof client>;
+  type AssignmentLog = ClientWithRelations["assignments"][number]["logs"][number];
+
+  const clientLogs: AssignmentLog[] = client.assignments
+    .flatMap((assignment: ClientWithRelations["assignments"][number]) => assignment.logs)
+    .sort((logA: AssignmentLog, logB: AssignmentLog) =>
       new Date(logB.date).getTime() - new Date(logA.date).getTime()
     );
 
