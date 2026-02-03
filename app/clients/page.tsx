@@ -6,7 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { ClientFormDialog } from "@/components/client-form-dialog";
 
 export default async function ClientsPage() {
-  const clients = await db.client.findMany({
+  const clients: Array<{
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    goals: string | null;
+    healthConditions: string | null;
+    notes: string | null;
+    active: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    _count: { assignments: number };
+  }> = await db.client.findMany({
     orderBy: { name: "asc" },
     include: {
       _count: {

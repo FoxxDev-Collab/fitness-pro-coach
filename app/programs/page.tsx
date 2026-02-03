@@ -4,8 +4,22 @@ import { Plus, ClipboardList, Dumbbell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProgramCard } from "./program-card";
 
+type ProgramWithRelations = {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  workouts: {
+    id: string;
+    name: string;
+    exercises: { id: string }[];
+  }[];
+  _count: { assignments: number };
+};
+
 export default async function ProgramsPage() {
-  const programs = await db.program.findMany({
+  const programs: ProgramWithRelations[] = await db.program.findMany({
     orderBy: { name: "asc" },
     include: {
       workouts: {

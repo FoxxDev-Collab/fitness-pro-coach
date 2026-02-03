@@ -1,11 +1,40 @@
 import { db } from "@/lib/db";
-import Link from "next/link";
-import { ChevronRight, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { ReportsClientView } from "./reports-client";
 
+type Client = {
+  id: string;
+  name: string;
+  active: boolean;
+};
+
+type Assignment = {
+  id: string;
+  clientId: string;
+  workouts: {
+    exercises: {
+      name: string;
+      type: string;
+    }[];
+  }[];
+};
+
+type SessionLog = {
+  id: string;
+  assignmentId: string;
+  date: Date;
+  duration: number | null;
+  exercises: {
+    exerciseIndex: number;
+    weight: number | null;
+    setDetails: {
+      weight: number | null;
+      reps: number | null;
+    }[];
+  }[];
+};
+
 export default async function ReportsPage() {
-  const [clients, assignments, logs] = await Promise.all([
+  const [clients, assignments, logs]: [Client[], Assignment[], SessionLog[]] = await Promise.all([
     db.client.findMany({
       orderBy: { name: "asc" },
     }),
@@ -31,28 +60,28 @@ export default async function ReportsPage() {
   ]);
 
   // Calculate stats for each client
-  const clientStats = clients.map((c) => {
-    const clientAssignments = assignments.filter((a) => a.clientId === c.id);
-    const clientLogs = logs.filter((l) =>
-      clientAssignments.some((a) => a.id === l.assignmentId)
+  const clientStats = clients.map((c: Client) => {
+    const clientAssignments = assignments.filter((a: Assignment) => a.clientId === c.id);
+    const clientLogs = logs.filter((l: SessionLog) =>
+      clientAssignments.some((a: Assignment) => a.id === l.assignmentId)
     );
     const recentLogs = clientLogs.filter(
-      (l) => new Date(l.date).getTime() > Date.now() - 604800000
+      (l: SessionLog) => new Date(l.date).getTime() > Date.now() - 604800000
     );
 
     return {
       ...c,
       totalLogs: clientLogs.length,
       recentLogs: recentLogs.length,
-      totalMinutes: clientLogs.reduce((sum, l) => sum + (l.duration || 0), 0),
+      totalMinutes: clientLogs.reduce((sum: number, l: SessionLog) => sum + (l.duration || 0), 0),
     };
   });
 
-  const activeClients = clients.filter((c) => c.active).length;
+  const activeClients = clients.filter((c: Client) => c.active).length;
   const totalSessions = logs.length;
-  const totalMinutes = logs.reduce((sum, l) => sum + (l.duration || 0), 0);
+  const totalMinutes = logs.reduce((sum: number, l: SessionLog) => sum + (l.duration || 0), 0);
   const thisWeekSessions = logs.filter(
-    (l) => new Date(l.date).getTime() > Date.now() - 604800000
+    (l: SessionLog) => new Date(l.date).getTime() > Date.now() - 604800000
   ).length;
 
   return (

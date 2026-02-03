@@ -5,12 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExerciseFilters } from "./exercise-filters";
 
+type Exercise = {
+  id: string;
+  name: string;
+  category: string;
+  type: string;
+  equipment: string | null;
+  muscles: string[];
+  instructions: string | null;
+  tips: string | null;
+  image: string | null;
+  custom: boolean;
+  createdAt: Date;
+};
+
 export default async function ExercisesPage() {
-  const exercises = await db.exercise.findMany({
+  const exercises: Exercise[] = await db.exercise.findMany({
     orderBy: [{ custom: "asc" }, { name: "asc" }],
   });
 
-  const categories = [...new Set(exercises.map((e) => e.category))];
+  const categories: string[] = [...new Set(exercises.map((e: Exercise) => e.category))];
 
   return (
     <div>
