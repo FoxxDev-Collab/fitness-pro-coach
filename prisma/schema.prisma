@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Client {
+  id               String        @id @default(cuid())
+  name             String
+  email            String?
+  phone            String?
+  goals            String?
+  healthConditions String?
+  notes            String?
+  active           Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  assignments      Assignment[]
+  measurements     Measurement[]
+}
+
+model Exercise {
+  id           String             @id @default(cuid())
+  name         String
+  category     String             @default("Strength")
+  type         String             @default("weight") // weight, cardio, timed
+  equipment    String?
+  muscles      String[]
+  instructions String?
+  tips         String?
+  image        String?
+  custom       Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  workoutExercises WorkoutExercise[]
+}
+
+model Program {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  workouts    Workout[]
+  assignments Assignment[]
+}
+
+model Workout {
+  id        String            @id @default(cuid())
+  programId String
+  name      String
+  order     Int               @default(0)
+  program   Program           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises WorkoutExercise[]
+
+  @@index([programId])
+}
+
+model WorkoutExercise {
+  id         String   @id @default(cuid())
+  workoutId  String
+  exerciseId String
+  order      Int      @default(0)
+  sets       Int      @default(3)
+  reps       Int      @default(10)
+  weight     Float    @default(0)
+  duration   Float    @default(0) // minutes
+  distance   Float    @default(0) // miles
+  rest       Int      @default(60) // seconds
+  notes      String?
+  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+model Assignment {
+  id         String              @id @default(cuid())
+  clientId   String
+  programId  String
+  name       String
+  startDate  DateTime?
+  assignedAt DateTime            @default(now())
+  client     Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  program    Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  workouts   AssignmentWorkout[]
+  logs       SessionLog[]
+
+  @@index([clientId])
+  @@index([programId])
+}
+
+model AssignmentWorkout {
+  id           String                       @id @default(cuid())
+  assignmentId String
+  name         String
+  order        Int                          @default(0)
+  assignment   Assignment                   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  exercises    AssignmentWorkoutExercise[]
+
+  @@index([assignmentId])
+}
+
+model AssignmentWorkoutExercise {
+  id                  String            @id @default(cuid())
+  assignmentWorkoutId String
+  exerciseId          String?
+  name                String
+  type                String            @default("weight")
+  category            String            @default("Strength")
+  order               Int               @default(0)
+  sets                Int               @default(3)
+  reps                Int               @default(10)
+  weight              Float             @default(0)
+  duration            Float             @default(0)
+  distance            Float             @default(0)
+  rest                Int               @default(60)
+  notes               String?
+  assignmentWorkout   AssignmentWorkout @relation(fields: [assignmentWorkoutId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentWorkoutId])
+}
+
+model SessionLog {
+  id           String            @id @default(cuid())
+  assignmentId String
+  workoutIndex Int
+  sessionNotes String?
+  duration     Int?              // minutes
+  date         DateTime          @default(now())
+  createdAt    DateTime          @default(now())
+  assignment   Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  exercises    SessionExercise[]
+
+  @@index([assignmentId])
+}
+
+model SessionExercise {
+  id            String       @id @default(cuid())
+  sessionLogId  String
+  exerciseIndex Int
+  sets          Int?
+  reps          Int?
+  weight        Float?
+  duration      Float?
+  distance      Float?
+  notes         String?
+  sessionLog    SessionLog   @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
+  setDetails    SessionSet[]
+
+  @@index([sessionLogId])
+}
+
+model SessionSet {
+  id                String          @id @default(cuid())
+  sessionExerciseId String
+  setNumber         Int
+  reps              Int?
+  weight            Float?
+  duration          Float?
+  distance          Float?
+  sessionExercise   SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([sessionExerciseId])
+}
+
+model Measurement {
+  id        String   @id @default(cuid())
+  clientId  String
+  date      DateTime @default(now())
+  weight    Float?
+  bodyFat   Float?
+  chest     Float?
+  waist     Float?
+  hips      Float?
+  arms      Float?
+  thighs    Float?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
