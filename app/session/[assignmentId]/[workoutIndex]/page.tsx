@@ -29,6 +29,8 @@ export default async function SessionPage({
 
   const workout = assignment.workouts[workoutIdx];
 
+  type WorkoutExercise = (typeof workout.exercises)[number];
+
   return (
     <LiveSession
       assignmentId={assignmentId}
@@ -36,7 +38,7 @@ export default async function SessionPage({
       clientName={assignment.client.name}
       clientHealth={assignment.client.healthConditions}
       workoutName={workout.name}
-      exercises={workout.exercises.map((e) => ({
+      exercises={workout.exercises.map((e: WorkoutExercise) => ({
         name: e.name,
         type: e.type,
         category: e.category,

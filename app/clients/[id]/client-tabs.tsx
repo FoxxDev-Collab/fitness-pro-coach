@@ -88,7 +88,7 @@ export function ClientTabs({
           Start Session: {selectWorkout.name.split(" - ")[0]}
         </h2>
         <div className="space-y-2">
-          {selectWorkout.workouts?.map((w, i) => (
+          {selectWorkout.workouts?.map((w: Assignment["workouts"][number], i: number) => (
             <Link
               key={w.id}
               href={`/session/${selectWorkout.id}/${i}`}
@@ -111,7 +111,7 @@ export function ClientTabs({
   return (
     <>
       <div className="flex gap-2 mb-4 overflow-x-auto">
-        {tabs.map((t) => (
+        {tabs.map((t: string) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -186,7 +186,7 @@ function OverviewTab({
             <Play size={16} className="text-green-500" /> Start Session
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            {assignments.map((a) => (
+            {assignments.map((a: Assignment) => (
               <button
                 key={a.id}
                 onClick={() => onSelectWorkout(a)}
@@ -232,7 +232,7 @@ function ProgramsTab({
         <p className="text-muted-foreground text-center py-8">No programs assigned</p>
       ) : (
         <div className="space-y-2">
-          {assignments.map((a) => (
+          {assignments.map((a: Assignment) => (
             <div
               key={a.id}
               className="bg-card rounded-lg p-3 flex justify-between items-center"
@@ -281,9 +281,9 @@ function HistoryTab({
 
   return (
     <div className="space-y-3">
-      {logs.map((log) => {
-        const assignment = assignments.find((a) =>
-          a.logs.some((l) => l.id === log.id)
+      {logs.map((log: Log) => {
+        const assignment = assignments.find((a: Assignment) =>
+          a.logs.some((l: Log) => l.id === log.id)
         );
         const workout = assignment?.workouts?.[log.workoutIndex];
 
@@ -297,7 +297,7 @@ function HistoryTab({
                 </p>
               </div>
             </div>
-            {log.exercises.map((ex, idx) => {
+            {log.exercises.map((ex: Log["exercises"][number], idx: number) => {
               const origEx = workout?.exercises?.[ex.exerciseIndex];
               return (
                 <div
@@ -311,7 +311,7 @@ function HistoryTab({
                     <p className="text-muted-foreground">
                       {ex.setDetails.length} sets:{" "}
                       {ex.setDetails
-                        .map((s) =>
+                        .map((s: Log["exercises"][number]["setDetails"][number]) =>
                           s.weight ? `${s.reps}×${s.weight}lb` : `${s.duration}min`
                         )
                         .join(", ")}
@@ -389,7 +389,7 @@ function MeasurementsTab({
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            {fields.map((f) => {
+            {fields.map((f: { key: keyof Measurement; label: string; unit: string }) => {
               const p = getProgress(f.key);
               if (!p) return null;
               return (
@@ -418,7 +418,7 @@ function MeasurementsTab({
             })}
           </div>
           <div className="space-y-2">
-            {measurements.map((m) => (
+            {measurements.map((m: Measurement) => (
               <div
                 key={m.id}
                 className="bg-card rounded-lg p-3 flex justify-between items-start"
@@ -474,7 +474,7 @@ function CalendarTab({ logs }: { logs: Log[] }) {
     year === today.getFullYear();
 
   const monthLogs = logs.filter(
-    (l) =>
+    (l: Log) =>
       new Date(l.date).getMonth() === month &&
       new Date(l.date).getFullYear() === year
   );
@@ -504,14 +504,14 @@ function CalendarTab({ logs }: { logs: Log[] }) {
         </Button>
       </div>
       <div className="grid grid-cols-7 gap-1 mb-2">
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+        {["S", "M", "T", "W", "T", "F", "S"].map((d: string, i: number) => (
           <div key={i} className="text-center text-xs text-muted-foreground py-1">
             {d}
           </div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1">
-        {days.map((day, i) => {
+        {days.map((day: number | null, i: number) => {
           const dayLogs = getLogsForDay(day);
           return (
             <div

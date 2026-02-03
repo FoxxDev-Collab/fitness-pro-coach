@@ -36,14 +36,17 @@ export default async function EditProgramPage({
   }
 
   // Transform to editor format
+  type ProgramWorkout = (typeof program.workouts)[number];
+  type WorkoutExercise = ProgramWorkout["exercises"][number];
+
   const editorProgram = {
     id: program.id,
     name: program.name,
     description: program.description || "",
-    workouts: program.workouts.map((w) => ({
+    workouts: program.workouts.map((w: ProgramWorkout) => ({
       id: w.id,
       name: w.name,
-      exercises: w.exercises.map((we) => ({
+      exercises: w.exercises.map((we: WorkoutExercise) => ({
         id: we.id,
         exerciseId: we.exerciseId,
         name: we.exercise.name,

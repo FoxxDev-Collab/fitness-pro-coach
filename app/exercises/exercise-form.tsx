@@ -70,7 +70,7 @@ export function ExerciseForm({ exercise }: { exercise?: Exercise }) {
     set(
       "muscles",
       form.muscles.includes(muscle)
-        ? form.muscles.filter((m) => m !== muscle)
+        ? form.muscles.filter((m: string) => m !== muscle)
         : [...form.muscles, muscle]
     );
   };
@@ -244,7 +244,7 @@ export function ExerciseForm({ exercise }: { exercise?: Exercise }) {
             <div>
               <Label className="mb-2 block">Muscle Groups</Label>
               <div className="flex flex-wrap gap-2">
-                {muscleOptions.map((m) => (
+                {muscleOptions.map((m: string) => (
                   <button
                     key={m}
                     type="button"

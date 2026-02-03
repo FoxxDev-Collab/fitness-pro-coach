@@ -29,7 +29,7 @@ export function ExerciseFilters({
   const [search, setSearch] = useState("");
 
   const filtered = exercises.filter(
-    (e) =>
+    (e: Exercise) =>
       (filter === "All" || e.category === filter) &&
       (search === "" || e.name.toLowerCase().includes(search.toLowerCase()))
   );
@@ -57,7 +57,7 @@ export function ExerciseFilters({
         >
           All
         </button>
-        {categories.map((c) => (
+        {categories.map((c: string) => (
           <button
             key={c}
             onClick={() => setFilter(c)}
@@ -80,7 +80,7 @@ export function ExerciseFilters({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map((e) => (
+          {filtered.map((e: Exercise) => (
             <Link
               key={e.id}
               href={`/exercises/${e.id}`}

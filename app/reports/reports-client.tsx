@@ -50,13 +50,13 @@ export function ReportsClientView({
 }) {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
 
-  const client = clientStats.find((c) => c.id === selectedClient);
+  const client = clientStats.find((c: ClientStat) => c.id === selectedClient);
 
   if (client) {
-    const clientAssignments = assignments.filter((a) => a.clientId === client.id);
+    const clientAssignments = assignments.filter((a: Assignment) => a.clientId === client.id);
     const clientLogs = logs
-      .filter((l) => clientAssignments.some((a) => a.id === l.assignmentId))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .filter((l: SessionLog) => clientAssignments.some((a: Assignment) => a.id === l.assignmentId))
+      .sort((a: SessionLog, b: SessionLog) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Calculate exercise progress
     const exerciseProgress: Record<
@@ -64,11 +64,11 @@ export function ReportsClientView({
       { name: string; entries: { date: Date; weight: number }[] }
     > = {};
 
-    clientLogs.forEach((log) => {
-      const assignment = clientAssignments.find((a) => a.id === log.assignmentId);
+    clientLogs.forEach((log: SessionLog) => {
+      const assignment = clientAssignments.find((a: Assignment) => a.id === log.assignmentId);
       if (!assignment) return;
 
-      log.exercises.forEach((ex) => {
+      log.exercises.forEach((ex: SessionLog["exercises"][number]) => {
         const workout = assignment.workouts[0]; // Simplified
         if (!workout) return;
 
@@ -76,7 +76,7 @@ export function ReportsClientView({
         if (!exerciseInfo || exerciseInfo.type !== "weight") return;
 
         const maxWeight = ex.setDetails.length > 0
-          ? Math.max(...ex.setDetails.map((s) => s.weight || 0))
+          ? Math.max(...ex.setDetails.map((s: { weight: number | null; reps: number | null }) => s.weight || 0))
           : ex.weight || 0;
 
         if (maxWeight > 0) {
@@ -95,7 +95,7 @@ export function ReportsClientView({
     });
 
     const thisWeekLogs = clientLogs.filter(
-      (l) => new Date(l.date).getTime() > Date.now() - 604800000
+      (l: SessionLog) => new Date(l.date).getTime() > Date.now() - 604800000
     );
 
     return (
@@ -146,9 +146,9 @@ export function ReportsClientView({
             <div className="space-y-3">
               {Object.entries(exerciseProgress)
                 .slice(0, 6)
-                .map(([name, data]) => {
+                .map(([name, data]: [string, { name: string; entries: { date: Date; weight: number }[] }]) => {
                   const entries = data.entries.sort(
-                    (a, b) =>
+                    (a: { date: Date; weight: number }, b: { date: Date; weight: number }) =>
                       new Date(a.date).getTime() - new Date(b.date).getTime()
                   );
                   const first = entries[0]?.weight || 0;
@@ -188,12 +188,12 @@ export function ReportsClientView({
 
   // Client list sorted by activity
   const sortedClients = [...clientStats].sort(
-    (a, b) => b.recentLogs - a.recentLogs
+    (a: ClientStat, b: ClientStat) => b.recentLogs - a.recentLogs
   );
 
   return (
     <div className="space-y-2">
-      {sortedClients.map((c) => (
+      {sortedClients.map((c: ClientStat) => (
         <div
           key={c.id}
           onClick={() => setSelectedClient(c.id)}

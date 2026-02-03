@@ -62,7 +62,7 @@ export function LiveSession({
   const router = useRouter();
   const [currentExercise, setCurrentExercise] = useState(0);
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(
-    exercises.map(() => ({ actualSets: [], notes: "" }))
+    exercises.map((_: ExerciseTarget) => ({ actualSets: [], notes: "" }))
   );
   const [sessionNotes, setSessionNotes] = useState("");
   const [startTime] = useState(Date.now());
@@ -89,8 +89,8 @@ export function LiveSession({
     index: number,
     updates: Partial<ExerciseState>
   ) => {
-    setExerciseStates((states) =>
-      states.map((s, i) => (i === index ? { ...s, ...updates } : s))
+    setExerciseStates((states: ExerciseState[]) =>
+      states.map((s: ExerciseState, i: number) => (i === index ? { ...s, ...updates } : s))
     );
   };
 
@@ -121,7 +121,7 @@ export function LiveSession({
   };
 
   const updateSet = (setIdx: number, updates: Partial<ActualSet>) => {
-    const newSets = exState.actualSets.map((s, i) =>
+    const newSets = exState.actualSets.map((s: ActualSet, i: number) =>
       i === setIdx ? { ...s, ...updates } : s
     );
     updateExerciseState(currentExercise, { actualSets: newSets });
@@ -129,7 +129,7 @@ export function LiveSession({
 
   const removeSet = (setIdx: number) => {
     updateExerciseState(currentExercise, {
-      actualSets: exState.actualSets.filter((_, i) => i !== setIdx),
+      actualSets: exState.actualSets.filter((_: ActualSet, i: number) => i !== setIdx),
     });
   };
 
@@ -163,20 +163,20 @@ export function LiveSession({
     setSaving(true);
     try {
       const sessionExercises = exerciseStates
-        .map((state, idx) => {
+        .map((state: ExerciseState, idx: number) => {
           if (state.actualSets.length === 0 && !state.notes) return null;
 
           const target = exercises[idx];
           const maxWeight = Math.max(
-            ...state.actualSets.map((s) => s.weight || 0),
+            ...state.actualSets.map((s: ActualSet) => s.weight || 0),
             0
           );
           const totalDuration = state.actualSets.reduce(
-            (sum, s) => sum + (s.duration || 0),
+            (sum: number, s: ActualSet) => sum + (s.duration || 0),
             0
           );
           const totalDistance = state.actualSets.reduce(
-            (sum, s) => sum + (s.distance || 0),
+            (sum: number, s: ActualSet) => sum + (s.distance || 0),
             0
           );
 
@@ -188,7 +188,7 @@ export function LiveSession({
             duration: totalDuration,
             distance: totalDistance,
             notes: state.notes || undefined,
-            setDetails: state.actualSets.map((s, setIdx) => ({
+            setDetails: state.actualSets.map((s: ActualSet, setIdx: number) => ({
               setNumber: setIdx + 1,
               reps: s.reps || undefined,
               weight: s.weight || undefined,
@@ -322,7 +322,7 @@ export function LiveSession({
             </p>
           ) : (
             <div className="space-y-2">
-              {exState.actualSets.map((set, i) => (
+              {exState.actualSets.map((set: ActualSet, i: number) => (
                 <div
                   key={i}
                   className="bg-muted rounded p-3 flex items-center gap-3"
@@ -388,7 +388,7 @@ export function LiveSession({
           {/* Rest Timer Buttons */}
           {exState.actualSets.length > 0 && ex.type === "weight" && (
             <div className="flex gap-2 mt-3">
-              {[60, 90, 120, 180].map((s) => (
+              {[60, 90, 120, 180].map((s: number) => (
                 <Button
                   key={s}
                   variant="secondary"
@@ -422,7 +422,7 @@ export function LiveSession({
 
         {/* Progress Dots */}
         <div className="flex gap-2 mb-4">
-          {exerciseStates.map((state, i) => (
+          {exerciseStates.map((state: ExerciseState, i: number) => (
             <button
               key={i}
               onClick={() => setCurrentExercise(i)}

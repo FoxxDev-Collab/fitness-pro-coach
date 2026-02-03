@@ -73,7 +73,7 @@ export function AssignProgramToClientDialog({
     }
   };
 
-  const activeClients = clients.filter((c) => c.active);
+  const activeClients = clients.filter((c: Client) => c.active);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -138,7 +138,7 @@ export function AssignProgramToClientDialog({
           </p>
         ) : (
           <div className="space-y-2">
-            {activeClients.map((c) => (
+            {activeClients.map((c: Client) => (
               <button
                 key={c.id}
                 onClick={() => setSelectedClient(c)}

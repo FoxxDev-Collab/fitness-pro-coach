@@ -86,9 +86,9 @@ export function ProgramEditor({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const categories = ["All", ...new Set(exercises.map((e) => e.category))];
+  const categories = ["All", ...new Set(exercises.map((e: Exercise) => e.category))];
   const filteredExercises = exercises.filter(
-    (e) =>
+    (e: Exercise) =>
       (exerciseFilter === "All" || e.category === exerciseFilter) &&
       (exerciseSearch === "" ||
         e.name.toLowerCase().includes(exerciseSearch.toLowerCase()))
@@ -104,14 +104,14 @@ export function ProgramEditor({
   };
 
   const updateWorkout = (idx: number, updates: Partial<Workout>) => {
-    setForm((f) => ({
+    setForm((f: Program) => ({
       ...f,
-      workouts: f.workouts.map((w, i) => (i === idx ? { ...w, ...updates } : w)),
+      workouts: f.workouts.map((w: Workout, i: number) => (i === idx ? { ...w, ...updates } : w)),
     }));
   };
 
   const deleteWorkout = (idx: number) => {
-    setForm((f) => ({ ...f, workouts: f.workouts.filter((_, i) => i !== idx) }));
+    setForm((f: Program) => ({ ...f, workouts: f.workouts.filter((_: Workout, i: number) => i !== idx) }));
     if (activeWorkout >= idx && activeWorkout > 0) {
       setActiveWorkout(activeWorkout - 1);
     }
@@ -123,7 +123,7 @@ export function ProgramEditor({
       ...w,
       id: undefined,
       name: `${w.name} (Copy)`,
-      exercises: w.exercises.map((e) => ({ ...e, id: undefined })),
+      exercises: w.exercises.map((e: WorkoutExercise) => ({ ...e, id: undefined })),
     };
     setForm((f) => ({
       ...f,
@@ -158,7 +158,7 @@ export function ProgramEditor({
   };
 
   const updateExercise = (exIdx: number, updates: Partial<WorkoutExercise>) => {
-    const exs = form.workouts[activeWorkout].exercises.map((e, i) =>
+    const exs = form.workouts[activeWorkout].exercises.map((e: WorkoutExercise, i: number) =>
       i === exIdx ? { ...e, ...updates } : e
     );
     updateWorkout(activeWorkout, { exercises: exs });
@@ -167,7 +167,7 @@ export function ProgramEditor({
   const deleteExercise = (exIdx: number) => {
     updateWorkout(activeWorkout, {
       exercises: form.workouts[activeWorkout].exercises.filter(
-        (_, i) => i !== exIdx
+        (_: WorkoutExercise, i: number) => i !== exIdx
       ),
     });
   };
@@ -208,10 +208,10 @@ export function ProgramEditor({
       const data = {
         name: form.name,
         description: form.description || undefined,
-        workouts: form.workouts.map((w, wi) => ({
+        workouts: form.workouts.map((w: Workout, wi: number) => ({
           name: w.name,
           order: wi,
-          exercises: w.exercises.map((e, ei) => ({
+          exercises: w.exercises.map((e: WorkoutExercise, ei: number) => ({
             exerciseId: e.exerciseId,
             order: ei,
             sets: e.sets,
@@ -294,7 +294,7 @@ export function ProgramEditor({
               </p>
             ) : (
               <div className="space-y-2">
-                {form.workouts.map((w, i) => (
+                {form.workouts.map((w: Workout, i: number) => (
                   <div
                     key={i}
                     onClick={() => setActiveWorkout(i)}
@@ -406,7 +406,7 @@ export function ProgramEditor({
                             autoFocus
                           />
                           <div className="flex gap-1 mt-2 flex-wrap">
-                            {categories.map((c) => (
+                            {categories.map((c: string) => (
                               <button
                                 key={c}
                                 onClick={() => setExerciseFilter(c)}
@@ -428,7 +428,7 @@ export function ProgramEditor({
                               No exercises found
                             </p>
                           ) : (
-                            filteredExercises.map((ex) => (
+                            filteredExercises.map((ex: Exercise) => (
                               <button
                                 key={ex.id}
                                 onClick={() => addExerciseToWorkout(ex)}
@@ -475,7 +475,7 @@ export function ProgramEditor({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {currentWorkout.exercises.map((ex, i) => (
+                    {currentWorkout.exercises.map((ex: WorkoutExercise, i: number) => (
                       <div
                         key={i}
                         draggable

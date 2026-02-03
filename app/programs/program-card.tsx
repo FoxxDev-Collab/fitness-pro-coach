@@ -38,7 +38,7 @@ export function ProgramCard({ program }: { program: Program }) {
   const [duplicating, setDuplicating] = useState(false);
 
   const totalExercises = program.workouts.reduce(
-    (sum, w) => sum + w.exercises.length,
+    (sum: number, w: Program["workouts"][number]) => sum + w.exercises.length,
     0
   );
 
@@ -119,7 +119,7 @@ export function ProgramCard({ program }: { program: Program }) {
         </div>
         {program.workouts.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-4">
-            {program.workouts.map((w) => (
+            {program.workouts.map((w: Program["workouts"][number]) => (
               <Badge key={w.id} variant="secondary">
                 {w.name}
               </Badge>
