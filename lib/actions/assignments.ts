@@ -28,6 +28,9 @@ export async function assignProgram(data: {
 
   if (!program) throw new Error("Program not found");
 
+  type ProgramWorkout = (typeof program.workouts)[number];
+  type WorkoutExercise = ProgramWorkout["exercises"][number];
+
   // Create the assignment with copied workouts and exercises
   const assignment = await db.assignment.create({
     data: {
@@ -36,11 +39,11 @@ export async function assignProgram(data: {
       name: data.name,
       startDate: data.startDate,
       workouts: {
-        create: program.workouts.map((w) => ({
+        create: program.workouts.map((w: ProgramWorkout) => ({
           name: w.name,
           order: w.order,
           exercises: {
-            create: w.exercises.map((we) => ({
+            create: w.exercises.map((we: WorkoutExercise) => ({
               exerciseId: we.exerciseId,
               name: we.exercise.name,
               type: we.exercise.type,
