@@ -71,11 +71,11 @@ export async function createProgram(data: {
       name: data.name,
       description: data.description,
       workouts: {
-        create: data.workouts.map((w) => ({
+        create: data.workouts.map((w: WorkoutInput) => ({
           name: w.name,
           order: w.order,
           exercises: {
-            create: w.exercises.map((e) => ({
+            create: w.exercises.map((e: WorkoutExerciseInput) => ({
               exerciseId: e.exerciseId,
               order: e.order,
               sets: e.sets,
@@ -112,11 +112,11 @@ export async function updateProgram(
       name: data.name,
       description: data.description,
       workouts: {
-        create: data.workouts.map((w) => ({
+        create: data.workouts.map((w: WorkoutInput) => ({
           name: w.name,
           order: w.order,
           exercises: {
-            create: w.exercises.map((e) => ({
+            create: w.exercises.map((e: WorkoutExerciseInput) => ({
               exerciseId: e.exerciseId,
               order: e.order,
               sets: e.sets,
@@ -157,16 +157,19 @@ export async function duplicateProgram(id: string) {
 
   if (!original) throw new Error("Program not found");
 
+  type OriginalWorkout = (typeof original.workouts)[number];
+  type OriginalExercise = OriginalWorkout["exercises"][number];
+
   const copy = await db.program.create({
     data: {
       name: `${original.name} (Copy)`,
       description: original.description,
       workouts: {
-        create: original.workouts.map((w) => ({
+        create: original.workouts.map((w: OriginalWorkout) => ({
           name: w.name,
           order: w.order,
           exercises: {
-            create: w.exercises.map((e) => ({
+            create: w.exercises.map((e: OriginalExercise) => ({
               exerciseId: e.exerciseId,
               order: e.order,
               sets: e.sets,
