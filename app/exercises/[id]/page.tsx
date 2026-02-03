@@ -26,7 +26,28 @@ export default async function ExerciseDetailPage({
   }
 
   // Get exercise history from session logs
-  const history = await db.sessionExercise.findMany({
+  type HistoryEntry = {
+    id: string;
+    sets: number | null;
+    reps: number | null;
+    weight: number | null;
+    duration: number | null;
+    sessionLog: {
+      date: Date;
+      assignment: {
+        client: {
+          id: string;
+          name: string;
+        };
+      };
+    };
+    setDetails: {
+      weight: number | null;
+      reps: number | null;
+    }[];
+  };
+
+  const history: HistoryEntry[] = await db.sessionExercise.findMany({
     where: {
       sessionLog: {
         assignment: {
@@ -67,7 +88,7 @@ export default async function ExerciseDetailPage({
     string,
     { name: string; sessions: number; maxWeight: number; totalVolume: number }
   > = {};
-  history.forEach((h) => {
+  history.forEach((h: HistoryEntry) => {
     const clientId = h.sessionLog.assignment.client.id;
     const clientName = h.sessionLog.assignment.client.name;
     if (!clientStats[clientId]) {
@@ -82,7 +103,7 @@ export default async function ExerciseDetailPage({
     if (h.weight && h.weight > clientStats[clientId].maxWeight) {
       clientStats[clientId].maxWeight = h.weight;
     }
-    h.setDetails.forEach((s) => {
+    h.setDetails.forEach((s: { weight: number | null; reps: number | null }) => {
       clientStats[clientId].totalVolume += (s.weight || 0) * (s.reps || 0);
     });
   });
