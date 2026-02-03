@@ -162,7 +162,7 @@ export default async function ExerciseDetailPage({
                   Muscles
                 </span>
                 <div className="flex flex-wrap gap-1">
-                  {exercise.muscles?.map((m) => (
+                  {exercise.muscles?.map((m: string) => (
                     <Badge key={m} variant="secondary">
                       {m}
                     </Badge>
