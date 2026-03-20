@@ -1,6 +1,7 @@
 import { Dumbbell } from "lucide-react";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { requireCoach } from "@/lib/auth-utils";
 
 export default async function CoachLayout({
@@ -18,7 +19,10 @@ export default async function CoachLayout({
             <Dumbbell className="size-5 text-foreground" />
             <span className="text-lg font-semibold tracking-tight">FitCoach Pro</span>
           </div>
-          <UserMenu />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
         <NavTabs />
       </header>

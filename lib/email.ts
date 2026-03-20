@@ -1,13 +1,18 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-function getResend() {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not set");
-  }
-  return new Resend(process.env.RESEND_API_KEY);
+function getTransport() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 }
 
-const emailFrom = () => process.env.EMAIL_FROM || "FitCoach Pro <onboarding@resend.dev>";
+const emailFrom = () => process.env.EMAIL_FROM || "FitCoach Pro <noreply@fitcoachpro.com>";
 const baseUrl = () => process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000";
 
 function emailWrapper(title: string, body: string) {
@@ -23,16 +28,17 @@ function emailWrapper(title: string, body: string) {
 }
 
 async function send(to: string, subject: string, html: string) {
-  const resend = getResend();
-  const { error } = await resend.emails.send({
-    from: emailFrom(),
-    to,
-    subject,
-    html,
-  });
-  if (error) {
+  const transport = getTransport();
+  try {
+    await transport.sendMail({
+      from: emailFrom(),
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
     console.error("Email send failed:", error);
-    throw new Error(`Failed to send email: ${error.message}`);
+    throw new Error(`Failed to send email: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 

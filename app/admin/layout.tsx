@@ -1,6 +1,7 @@
 import { Dumbbell, Shield } from "lucide-react";
 import { AdminNav } from "@/components/admin-nav";
 import { UserMenu } from "@/components/user-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { requireAdmin } from "@/lib/auth-utils";
 
 export default async function AdminLayout({
@@ -21,7 +22,10 @@ export default async function AdminLayout({
               <Shield className="size-3" /> Admin
             </span>
           </div>
-          <UserMenu />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
         <AdminNav />
       </header>

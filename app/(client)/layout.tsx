@@ -1,6 +1,7 @@
 import { Dumbbell } from "lucide-react";
 import { ClientNav } from "@/components/client-nav";
 import { UserMenu } from "@/components/user-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { requireClient } from "@/lib/auth-utils";
 
 export default async function ClientLayout({
@@ -18,7 +19,10 @@ export default async function ClientLayout({
             <Dumbbell className="size-5 text-foreground" />
             <span className="text-lg font-semibold tracking-tight">FitCoach Pro</span>
           </div>
-          <UserMenu />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
         <ClientNav />
       </header>
