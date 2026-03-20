@@ -1,12 +1,15 @@
 import { Dumbbell } from "lucide-react";
 import { ClientNav } from "@/components/client-nav";
 import { UserMenu } from "@/components/user-menu";
+import { requireClient } from "@/lib/auth-utils";
 
-export default function ClientLayout({
+export default async function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireClient();
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

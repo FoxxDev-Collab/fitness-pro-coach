@@ -1,12 +1,15 @@
 import { Dumbbell } from "lucide-react";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
+import { requireCoach } from "@/lib/auth-utils";
 
-export default function CoachLayout({
+export default async function CoachLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireCoach();
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

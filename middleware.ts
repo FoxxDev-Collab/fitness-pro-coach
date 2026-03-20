@@ -1,9 +1,9 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 const publicPaths = ["/login", "/signup", "/invite", "/api/auth"];
 
-export default auth((req) => {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow public paths
@@ -11,43 +11,20 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  const user = req.auth?.user;
+  // Check for session token (NextAuth JWT cookie)
+  const token =
+    req.cookies.get("__Secure-authjs.session-token") ||
+    req.cookies.get("authjs.session-token");
 
   // Not logged in → redirect to login
-  if (!user) {
+  if (!token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Root redirect by role
-  if (pathname === "/") {
-    if (user.role === "ADMIN") {
-      return NextResponse.redirect(new URL("/admin/dashboard", req.url));
-    }
-    if (user.role === "CLIENT") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-    return NextResponse.redirect(new URL("/clients", req.url));
-  }
-
-  // Role-based route protection
-  const coachRoutes = ["/clients", "/exercises", "/programs", "/reports", "/session", "/settings"];
-  const clientRoutes = ["/dashboard", "/workout", "/progress"];
-  const adminRoutes = ["/admin"];
-
-  if (adminRoutes.some((r) => pathname.startsWith(r)) && user.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  if (clientRoutes.some((r) => pathname.startsWith(r)) && user.role !== "CLIENT") {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  if (coachRoutes.some((r) => pathname.startsWith(r)) && user.role !== "COACH") {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
+  // Let server components handle role-based access
+  // (we can't decode JWT in Edge without crypto, so role checks happen server-side)
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

@@ -1,12 +1,15 @@
 import { Dumbbell, Shield } from "lucide-react";
 import { AdminNav } from "@/components/admin-nav";
 import { UserMenu } from "@/components/user-menu";
+import { requireAdmin } from "@/lib/auth-utils";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdmin();
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
