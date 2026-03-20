@@ -26,7 +26,7 @@ type LogInput = {
 
 type AssignmentInput = {
   id: string;
-  clientId?: string;
+  clientId?: string | null;
   workouts: {
     exercises: {
       name: string;

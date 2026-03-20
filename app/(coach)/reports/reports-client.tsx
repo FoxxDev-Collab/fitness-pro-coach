@@ -18,7 +18,7 @@ type ClientStat = {
 
 type Assignment = {
   id: string;
-  clientId: string;
+  clientId: string | null;
   workouts: {
     exercises: {
       name: string;

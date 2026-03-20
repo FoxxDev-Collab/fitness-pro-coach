@@ -99,23 +99,55 @@ export default async function ProgressPage() {
         {logs.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">No sessions yet</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {logs.slice(0, 20).map((log) => {
-              const workoutName = log.assignment?.workouts?.[log.workoutIndex]?.name || "Workout";
+              const workout = log.assignment?.workouts?.[log.workoutIndex];
+              const workoutName = workout?.name || "Workout";
               return (
                 <Card key={log.id}>
-                  <CardContent className="pt-3 pb-3">
-                    <div className="flex justify-between items-start">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium text-sm">{workoutName}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-medium">{workoutName}</p>
+                        <p className="text-sm text-muted-foreground">
                           {new Date(log.date).toLocaleDateString()} · {log.duration || "?"}min
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {log.exercises.length} exercises
-                      </p>
                     </div>
+                    {log.exercises.map((ex) => {
+                      const exerciseName = workout?.exercises?.[ex.exerciseIndex]?.name;
+                      return (
+                        <div key={ex.id} className="text-sm border-t pt-2 mt-2">
+                          <p className="font-medium text-sm">
+                            {exerciseName || `Exercise ${ex.exerciseIndex + 1}`}
+                          </p>
+                          {ex.setDetails.length > 0 ? (
+                            <p className="text-muted-foreground">
+                              {ex.setDetails.length} sets:{" "}
+                              {ex.setDetails
+                                .map((s) =>
+                                  s.weight ? `${s.reps}×${s.weight}lb` : `${s.duration}min`
+                                )
+                                .join(", ")}
+                            </p>
+                          ) : ex.weight ? (
+                            <p className="text-muted-foreground">
+                              {ex.sets}×{ex.reps} @ {ex.weight}lb
+                            </p>
+                          ) : null}
+                          {ex.notes && (
+                            <p className="text-xs text-muted-foreground mt-1 italic">
+                              {ex.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {log.sessionNotes && (
+                      <div className="border-t pt-2 mt-2">
+                        <p className="text-sm text-muted-foreground italic">Notes: {log.sessionNotes}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );

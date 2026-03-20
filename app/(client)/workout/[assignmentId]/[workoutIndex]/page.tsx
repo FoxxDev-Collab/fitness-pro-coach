@@ -27,7 +27,7 @@ export default async function ClientWorkoutPage({
     },
   });
 
-  if (!assignment || assignment.client.userId !== session.user.id) {
+  if (!assignment || !assignment.client || assignment.client.userId !== session.user.id) {
     notFound();
   }
 
@@ -35,6 +35,18 @@ export default async function ClientWorkoutPage({
   if (!workout) notFound();
 
   const previousData = await getExerciseHistory(assignmentId, workoutIndex);
+
+  // Look up muscles for each exercise
+  const exerciseIds = workout.exercises
+    .map((e) => e.exerciseId)
+    .filter(Boolean) as string[];
+  const exerciseRecords = exerciseIds.length > 0
+    ? await db.exercise.findMany({
+        where: { id: { in: exerciseIds } },
+        select: { id: true, muscles: true },
+      })
+    : [];
+  const muscleMap = new Map(exerciseRecords.map((e) => [e.id, e.muscles]));
 
   return (
     <LiveSession
@@ -55,6 +67,7 @@ export default async function ClientWorkoutPage({
         distance: e.distance,
         rest: e.rest,
         notes: e.notes,
+        muscles: e.exerciseId ? muscleMap.get(e.exerciseId) || [] : [],
       }))}
     />
   );

@@ -34,8 +34,8 @@ export async function getExerciseHistory(
 
   if (!assignment) return [];
 
-  const isCoach = session.user.role === "COACH" && assignment.client.coachId === session.user.id;
-  const isClient = session.user.role === "CLIENT" && assignment.client.userId === session.user.id;
+  const isCoach = session.user.role === "COACH" && assignment.client?.coachId === session.user.id;
+  const isClient = session.user.role === "CLIENT" && assignment.client?.userId === session.user.id;
   if (!isCoach && !isClient) throw new Error("Unauthorized");
 
   const workout = assignment.workouts[workoutIndex];
@@ -43,9 +43,14 @@ export async function getExerciseHistory(
 
   const exerciseNames = workout.exercises.map((e) => e.name);
 
-  // Find all assignments for this client to search across all programs
+  // Find all assignments for this client/athlete to search across all programs
+  const whereClause = assignment.clientId
+    ? { clientId: assignment.clientId }
+    : assignment.athleteId
+      ? { athleteId: assignment.athleteId }
+      : { id: assignment.id };
   const clientAssignments = await db.assignment.findMany({
-    where: { clientId: assignment.client.id },
+    where: whereClause,
     select: { id: true, workouts: { include: { exercises: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } } },
   });
 
@@ -144,16 +149,20 @@ export async function saveSession(data: {
   const session = await auth();
   if (!session?.user) throw new Error("Not authenticated");
 
-  // Verify access: coach owns the client, or client owns the assignment
+  // Verify access: coach owns the client/athlete, or client owns the assignment
   const assignment = await db.assignment.findUnique({
     where: { id: data.assignmentId },
-    include: { client: { select: { coachId: true, userId: true, id: true } } },
+    include: {
+      client: { select: { coachId: true, userId: true, id: true } },
+      athlete: { include: { team: { select: { coachId: true } } } },
+    },
   });
 
   if (!assignment) throw new Error("Assignment not found");
 
-  const isCoach = session.user.role === "COACH" && assignment.client.coachId === session.user.id;
-  const isClient = session.user.role === "CLIENT" && assignment.client.userId === session.user.id;
+  const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
+  const isCoach = session.user.role === "COACH" && ownerCoachId === session.user.id;
+  const isClient = session.user.role === "CLIENT" && assignment.client?.userId === session.user.id;
 
   if (!isCoach && !isClient) throw new Error("Unauthorized");
 
@@ -187,13 +196,14 @@ export async function saveSession(data: {
     },
   });
 
-  revalidatePath(`/clients/${assignment.client.id}`);
+  if (assignment.client) revalidatePath(`/clients/${assignment.client.id}`);
+  if (assignment.athlete) revalidatePath(`/teams/${assignment.athlete.teamId}`);
   revalidatePath("/reports");
   revalidatePath("/dashboard");
   revalidatePath("/progress");
 
   // Notify coach when client completes a session
-  if (isClient) {
+  if (isClient && assignment.client) {
     try {
       const coach = await db.user.findUnique({
         where: { id: assignment.client.coachId! },
@@ -229,15 +239,17 @@ export async function deleteSession(sessionLogId: string) {
 
   const log = await db.sessionLog.findUnique({
     where: { id: sessionLogId },
-    include: { assignment: { include: { client: { select: { coachId: true, id: true } } } } },
+    include: { assignment: { include: { client: { select: { coachId: true, id: true } }, athlete: { include: { team: { select: { coachId: true, id: true } } } } } } },
   });
 
   if (!log) throw new Error("Session not found");
-  if (log.assignment.client.coachId !== session.user.id) throw new Error("Unauthorized");
+  const logCoachId = log.assignment.client?.coachId ?? log.assignment.athlete?.team?.coachId;
+  if (logCoachId !== session.user.id) throw new Error("Unauthorized");
 
   await db.sessionLog.delete({ where: { id: sessionLogId } });
 
-  revalidatePath(`/clients/${log.assignment.client.id}`);
+  if (log.assignment.client) revalidatePath(`/clients/${log.assignment.client.id}`);
+  if (log.assignment.athlete) revalidatePath(`/teams/${log.assignment.athlete.team.id}`);
   revalidatePath("/reports");
 }
 
@@ -254,11 +266,12 @@ export async function updateSession(
 
   const log = await db.sessionLog.findUnique({
     where: { id: sessionLogId },
-    include: { assignment: { include: { client: { select: { coachId: true, id: true } } } } },
+    include: { assignment: { include: { client: { select: { coachId: true, id: true } }, athlete: { include: { team: { select: { coachId: true, id: true } } } } } } },
   });
 
   if (!log) throw new Error("Session not found");
-  if (log.assignment.client.coachId !== session.user.id) throw new Error("Unauthorized");
+  const updateCoachId = log.assignment.client?.coachId ?? log.assignment.athlete?.team?.coachId;
+  if (updateCoachId !== session.user.id) throw new Error("Unauthorized");
 
   await db.$transaction(async (tx) => {
     // Delete existing exercises (cascade deletes sets)
@@ -294,6 +307,7 @@ export async function updateSession(
     });
   });
 
-  revalidatePath(`/clients/${log.assignment.client.id}`);
+  if (log.assignment.client) revalidatePath(`/clients/${log.assignment.client.id}`);
+  if (log.assignment.athlete) revalidatePath(`/teams/${log.assignment.athlete.team.id}`);
   revalidatePath("/reports");
 }

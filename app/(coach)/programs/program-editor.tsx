@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { createProgram, updateProgram } from "@/lib/actions/programs";
+import { BodyMap } from "@/components/body-map";
 
 type Exercise = {
   id: string;
@@ -375,6 +376,33 @@ export function ProgramEditor({
                   placeholder="Workout Name"
                 />
               </div>
+
+              {/* Muscle Map */}
+              {currentWorkout.exercises?.length > 0 && (() => {
+                const workoutMuscles = [
+                  ...new Set(
+                    currentWorkout.exercises.flatMap((we: WorkoutExercise) => {
+                      const ex = exercises.find((e: Exercise) => e.id === we.exerciseId);
+                      return ex?.muscles || [];
+                    })
+                  ),
+                ];
+                return workoutMuscles.length > 0 ? (
+                  <div className="bg-card rounded-xl p-4">
+                    <h3 className="font-semibold mb-2 text-sm">Muscles Targeted</h3>
+                    <div className="flex items-start gap-4">
+                      <BodyMap activeMuscles={workoutMuscles} size="sm" />
+                      <div className="flex flex-wrap gap-1.5 pt-2">
+                        {workoutMuscles.map((m: string) => (
+                          <span key={m} className="bg-primary/15 text-primary text-xs px-2 py-0.5 rounded-full font-medium">
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               <div className="bg-card rounded-xl p-4">
                 <div className="flex justify-between items-center mb-4">

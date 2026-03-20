@@ -17,6 +17,7 @@ export default async function SessionPage({
     where: { id: assignmentId },
     include: {
       client: true,
+      athlete: { include: { team: { select: { coachId: true } } } },
       workouts: {
         include: {
           exercises: true,
@@ -26,7 +27,13 @@ export default async function SessionPage({
     },
   });
 
-  if (!assignment || !assignment.workouts[workoutIdx] || assignment.client.coachId !== coachId) {
+  if (!assignment || !assignment.workouts[workoutIdx]) {
+    notFound();
+  }
+
+  // Verify coach ownership via client or athlete's team
+  const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
+  if (ownerCoachId !== coachId) {
     notFound();
   }
 
@@ -36,12 +43,24 @@ export default async function SessionPage({
 
   const previousData = await getExerciseHistory(assignmentId, workoutIdx);
 
+  // Look up muscles for each exercise
+  const exerciseIds = workout.exercises
+    .map((e: WorkoutExercise) => e.exerciseId)
+    .filter(Boolean) as string[];
+  const exerciseRecords = exerciseIds.length > 0
+    ? await db.exercise.findMany({
+        where: { id: { in: exerciseIds } },
+        select: { id: true, muscles: true },
+      })
+    : [];
+  const muscleMap = new Map(exerciseRecords.map((e) => [e.id, e.muscles]));
+
   return (
     <LiveSession
       assignmentId={assignmentId}
       workoutIndex={workoutIdx}
-      clientName={assignment.client.name}
-      clientHealth={assignment.client.healthConditions}
+      clientName={assignment.client?.name ?? assignment.athlete?.name ?? "Athlete"}
+      clientHealth={assignment.client?.healthConditions ?? null}
       workoutName={workout.name}
       previousData={previousData}
       exercises={workout.exercises.map((e: WorkoutExercise) => ({
@@ -55,6 +74,7 @@ export default async function SessionPage({
         distance: e.distance,
         rest: e.rest,
         notes: e.notes,
+        muscles: e.exerciseId ? muscleMap.get(e.exerciseId) || [] : [],
       }))}
     />
   );

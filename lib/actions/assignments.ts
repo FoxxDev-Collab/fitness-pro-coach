@@ -98,11 +98,18 @@ export async function deleteAssignment(id: string) {
   const coachId = await getCoachId();
   const assignment = await db.assignment.findUnique({
     where: { id },
-    include: { client: { select: { coachId: true, id: true } } },
+    include: {
+      client: { select: { coachId: true, id: true } },
+      athlete: { include: { team: { select: { coachId: true, id: true } } } },
+    },
   });
-  if (!assignment || assignment.client.coachId !== coachId) return;
+  if (!assignment) return;
+
+  const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
+  if (ownerCoachId !== coachId) return;
 
   await db.assignment.delete({ where: { id } });
-  revalidatePath(`/clients/${assignment.client.id}`);
+  if (assignment.client) revalidatePath(`/clients/${assignment.client.id}`);
+  if (assignment.athlete) revalidatePath(`/teams/${assignment.athlete.team.id}`);
   revalidatePath("/programs");
 }

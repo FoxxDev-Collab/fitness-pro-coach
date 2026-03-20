@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DeleteExerciseButton } from "./delete-button";
+import { BodyMap } from "@/components/body-map";
 
 export default async function ExerciseDetailPage({
   params,
@@ -42,7 +43,7 @@ export default async function ExerciseDetailPage({
         client: {
           id: string;
           name: string;
-        };
+        } | null;
       };
     };
     setDetails: {
@@ -94,8 +95,8 @@ export default async function ExerciseDetailPage({
     { name: string; sessions: number; maxWeight: number; totalVolume: number }
   > = {};
   history.forEach((h: HistoryEntry) => {
-    const clientId = h.sessionLog.assignment.client.id;
-    const clientName = h.sessionLog.assignment.client.name;
+    const clientId = h.sessionLog.assignment.client?.id ?? "unknown";
+    const clientName = h.sessionLog.assignment.client?.name ?? "Athlete";
     if (!clientStats[clientId]) {
       clientStats[clientId] = {
         name: clientName,
@@ -173,6 +174,9 @@ export default async function ExerciseDetailPage({
                     </Badge>
                   ))}
                 </div>
+                {exercise.muscles?.length > 0 && (
+                  <BodyMap activeMuscles={exercise.muscles} size="sm" className="mt-3" />
+                )}
               </div>
               {exercise.custom && (
                 <div className="text-xs text-purple-400 pt-2 border-t border-border">
@@ -267,7 +271,7 @@ export default async function ExerciseDetailPage({
                     >
                       <div>
                         <p className="text-sm font-medium">
-                          {h.sessionLog.assignment.client.name}
+                          {h.sessionLog.assignment.client?.name ?? "Athlete"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(h.sessionLog.date).toLocaleDateString()}

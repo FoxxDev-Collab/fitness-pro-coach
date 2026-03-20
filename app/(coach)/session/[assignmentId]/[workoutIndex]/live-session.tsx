@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { saveSession } from "@/lib/actions/sessions";
 import type { ExerciseHistoryEntry } from "@/lib/actions/sessions";
 import { History } from "lucide-react";
+import { BodyMap } from "@/components/body-map";
 
 type ExerciseTarget = {
   name: string;
@@ -34,6 +35,7 @@ type ExerciseTarget = {
   distance: number;
   rest: number;
   notes: string | null;
+  muscles?: string[];
 };
 
 type ActualSet = {
@@ -322,6 +324,20 @@ export function LiveSession({
             <ChevronRight className="size-4" />
           </Button>
         </div>
+
+        {/* Muscle Map */}
+        {ex.muscles && ex.muscles.length > 0 && (
+          <div className="flex items-center justify-center gap-3">
+            <BodyMap activeMuscles={ex.muscles} size="sm" showLabels={false} />
+            <div className="flex flex-wrap gap-1">
+              {ex.muscles.map((m) => (
+                <span key={m} className="bg-primary/15 text-primary text-xs px-2 py-0.5 rounded-full font-medium">
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Rest Timer */}
         {isResting && (

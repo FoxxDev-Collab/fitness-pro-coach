@@ -164,6 +164,70 @@ export async function sendSessionCompletedEmail(
   );
 }
 
+export async function sendTeamEventEmail(
+  to: string,
+  teamName: string,
+  eventTitle: string,
+  eventType: string,
+  startTime: Date,
+  location?: string
+) {
+  const dateStr = startTime.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timeStr = startTime.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const locationLine = location
+    ? `<p style="color: #6b7280; margin: 4px 0;">📍 ${location}</p>`
+    : "";
+
+  await send(
+    to,
+    `${teamName}: ${eventTitle} - FitCoach Pro`,
+    emailWrapper(
+      `${eventType.charAt(0) + eventType.slice(1).toLowerCase()} Scheduled`,
+      `
+        <p style="color: #6b7280; margin-bottom: 16px;">
+          <strong>${teamName}</strong> has a new event:
+        </p>
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0 0 4px; font-weight: 600; color: #111827;">${eventTitle}</p>
+          <p style="color: #6b7280; margin: 4px 0;">📅 ${dateStr} at ${timeStr}</p>
+          ${locationLine}
+        </div>
+      `
+    )
+  );
+}
+
+export async function sendTeamAnnouncementEmail(
+  to: string,
+  teamName: string,
+  subject: string,
+  body: string
+) {
+  await send(
+    to,
+    `${teamName}: ${subject} - FitCoach Pro`,
+    emailWrapper(
+      subject,
+      `
+        <p style="color: #6b7280; margin-bottom: 16px;">
+          Announcement from <strong>${teamName}</strong>:
+        </p>
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0; color: #374151; white-space: pre-wrap;">${body}</p>
+        </div>
+      `
+    )
+  );
+}
+
 export async function sendInviteEmail(to: string, inviteUrl: string, coachName: string) {
   await send(
     to,

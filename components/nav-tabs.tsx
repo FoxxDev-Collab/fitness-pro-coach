@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Dumbbell, ClipboardList, BarChart3 } from "lucide-react";
+import { Users, UsersRound, Dumbbell, ClipboardList, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/clients", label: "Clients", icon: Users },
+  { href: "/teams", label: "Teams", icon: UsersRound },
   { href: "/exercises", label: "Exercises", icon: Dumbbell },
   { href: "/programs", label: "Programs", icon: ClipboardList },
   { href: "/reports", label: "Reports", icon: BarChart3 },
