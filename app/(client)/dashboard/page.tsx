@@ -1,13 +1,15 @@
-import { getMyAssignments, getMyProfile } from "@/lib/actions/client-portal";
+import { getMyAssignments, getMyProfile, getMyNotes } from "@/lib/actions/client-portal";
 import Link from "next/link";
-import { Play, Dumbbell } from "lucide-react";
+import { Play, Dumbbell, Pin, StickyNote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default async function ClientDashboard() {
-  const [profile, assignments] = await Promise.all([
+  const [profile, assignments, notes] = await Promise.all([
     getMyProfile(),
     getMyAssignments(),
+    getMyNotes(),
   ]);
 
   return (
@@ -76,6 +78,34 @@ export default async function ClientDashboard() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Coach Notes */}
+      {notes.length > 0 && (
+        <div>
+          <h2 className="text-sm font-medium mb-3 flex items-center gap-2">
+            <StickyNote className="size-4" /> Notes from your Coach
+          </h2>
+          <div className="space-y-2">
+            {notes.slice(0, 10).map((note) => (
+              <Card key={note.id} className={cn(note.pinned && "border-foreground/30")}>
+                <CardContent className="pt-3 pb-3">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                    {note.pinned && <Pin className="size-3" />}
+                    <span>
+                      {new Date(note.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                    {note.coach.name && <span>· {note.coach.name}</span>}
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
     </div>

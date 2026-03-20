@@ -86,6 +86,84 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   );
 }
 
+export async function sendProgramAssignedEmail(
+  to: string,
+  clientName: string,
+  programName: string,
+  coachName: string
+) {
+  await send(
+    to,
+    `New program assigned - FitCoach Pro`,
+    emailWrapper(
+      "New Program Assigned",
+      `
+        <p style="color: #6b7280; margin-bottom: 24px;">
+          Hey ${clientName}, ${coachName} has assigned you a new program: <strong>${programName}</strong>.
+          Log in to start your workouts!
+        </p>
+        <a href="${baseUrl()}/dashboard" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          View Program
+        </a>
+      `
+    )
+  );
+}
+
+export async function sendNoteAddedEmail(
+  to: string,
+  clientName: string,
+  coachName: string,
+  notePreview: string
+) {
+  await send(
+    to,
+    `New note from ${coachName} - FitCoach Pro`,
+    emailWrapper(
+      "New Note from Your Coach",
+      `
+        <p style="color: #6b7280; margin-bottom: 16px;">
+          Hey ${clientName}, ${coachName} left you a note:
+        </p>
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0; color: #374151;">${notePreview}</p>
+        </div>
+        <a href="${baseUrl()}/dashboard" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          View Dashboard
+        </a>
+      `
+    )
+  );
+}
+
+export async function sendSessionCompletedEmail(
+  to: string,
+  clientName: string,
+  workoutName: string,
+  date: Date
+) {
+  const dateStr = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  await send(
+    to,
+    `${clientName} completed a workout - FitCoach Pro`,
+    emailWrapper(
+      "Session Completed",
+      `
+        <p style="color: #6b7280; margin-bottom: 24px;">
+          ${clientName} just completed <strong>${workoutName}</strong> on ${dateStr}.
+        </p>
+        <a href="${baseUrl()}/clients" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          View Client Progress
+        </a>
+      `
+    )
+  );
+}
+
 export async function sendInviteEmail(to: string, inviteUrl: string, coachName: string) {
   await send(
     to,

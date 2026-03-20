@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Play, Plus, Trash2, Ruler, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Plus, Trash2, Ruler, ChevronLeft, ChevronRight, Pencil, Pin, StickyNote, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +11,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { AssignProgramDialog } from "@/components/assign-program-dialog";
 import { MeasurementDialog } from "@/components/measurement-dialog";
+import { MeasurementChart } from "@/components/charts/measurement-chart";
 import { deleteAssignment } from "@/lib/actions/assignments";
 import { deleteMeasurement } from "@/lib/actions/measurements";
+import { deleteSession } from "@/lib/actions/sessions";
+import { EditSessionDialog } from "@/components/edit-session-dialog";
+import { createNote, updateNote, deleteNote, togglePinNote } from "@/lib/actions/notes";
+import { Textarea } from "@/components/ui/textarea";
 
 type Client = {
   id: string;
@@ -64,16 +70,27 @@ type Measurement = {
 
 type Log = Assignment["logs"][0];
 
+type ClientNote = {
+  id: string;
+  content: string;
+  pinned: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  coach: { name: string | null };
+};
+
 export function ClientTabs({
   client,
   assignments,
   logs,
   measurements,
+  notes,
 }: {
   client: Client;
   assignments: Assignment[];
   logs: Log[];
   measurements: Measurement[];
+  notes: ClientNote[];
 }) {
   const [selectWorkout, setSelectWorkout] = useState<Assignment | null>(null);
 
@@ -115,6 +132,7 @@ export function ClientTabs({
         <TabsTrigger value="history">History</TabsTrigger>
         <TabsTrigger value="measurements">Measurements</TabsTrigger>
         <TabsTrigger value="calendar">Calendar</TabsTrigger>
+        <TabsTrigger value="notes">Notes</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="mt-4">
@@ -140,6 +158,9 @@ export function ClientTabs({
       </TabsContent>
       <TabsContent value="calendar" className="mt-4">
         <CalendarTab logs={logs} />
+      </TabsContent>
+      <TabsContent value="notes" className="mt-4">
+        <NotesTab clientId={client.id} notes={notes} />
       </TabsContent>
     </Tabs>
   );
@@ -295,6 +316,25 @@ function HistoryTab({
                     {new Date(log.date).toLocaleDateString()} · {log.duration || "?"}min
                   </p>
                 </div>
+                <div className="flex gap-1">
+                  <EditSessionDialog session={log}>
+                    <Button size="icon" variant="ghost" className="size-7">
+                      <Pencil className="size-3.5" />
+                    </Button>
+                  </EditSessionDialog>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (confirm("Delete this session?")) {
+                        await deleteSession(log.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
               </div>
               {log.exercises.map((ex: Log["exercises"][number]) => {
                 return (
@@ -387,6 +427,7 @@ function MeasurementsTab({
         <p className="text-muted-foreground text-center py-8 text-sm">No measurements</p>
       ) : (
         <>
+          <MeasurementChart measurements={measurements} />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {fields.map((f: { key: keyof Measurement; label: string; unit: string }) => {
               const p = getProgress(f.key);
@@ -551,5 +592,156 @@ function CalendarTab({ logs }: { logs: Log[] }) {
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+function NotesTab({
+  clientId,
+  notes,
+}: {
+  clientId: string;
+  notes: ClientNote[];
+}) {
+  const router = useRouter();
+  const [newNote, setNewNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+
+  const handleCreate = async () => {
+    if (!newNote.trim()) return;
+    setSending(true);
+    try {
+      await createNote(clientId, newNote.trim());
+      setNewNote("");
+      router.refresh();
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleUpdate = async (noteId: string) => {
+    if (!editContent.trim()) return;
+    await updateNote(noteId, editContent.trim());
+    setEditingId(null);
+    router.refresh();
+  };
+
+  const handleDelete = async (noteId: string) => {
+    if (confirm("Delete this note?")) {
+      await deleteNote(noteId);
+      router.refresh();
+    }
+  };
+
+  const handlePin = async (noteId: string) => {
+    await togglePinNote(noteId);
+    router.refresh();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <StickyNote className="size-4" /> Trainer Notes
+        </h3>
+      </div>
+
+      {/* New note input */}
+      <div className="flex gap-2">
+        <Textarea
+          rows={2}
+          placeholder="Add a note for this client..."
+          value={newNote}
+          onChange={(e) => setNewNote(e.target.value)}
+          className="flex-1"
+        />
+        <Button
+          onClick={handleCreate}
+          disabled={sending || !newNote.trim()}
+          className="shrink-0 self-end"
+        >
+          <Send className="size-4 mr-1" />
+          {sending ? "Saving..." : "Add"}
+        </Button>
+      </div>
+
+      {/* Notes list */}
+      {notes.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8 text-sm">
+          No notes yet. Add a note above.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {notes.map((note) => (
+            <Card key={note.id} className={cn(note.pinned && "border-foreground/30")}>
+              <CardContent className="pt-3 pb-3">
+                <div className="flex justify-between items-start gap-2 mb-1">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {note.pinned && <Pin className="size-3" />}
+                    <span>
+                      {new Date(note.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex gap-0.5">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      onClick={() => handlePin(note.id)}
+                      title={note.pinned ? "Unpin" : "Pin"}
+                    >
+                      <Pin className={cn("size-3.5", note.pinned && "fill-current")} />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      onClick={() => {
+                        setEditingId(note.id);
+                        setEditContent(note.content);
+                      }}
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(note.id)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                {editingId === note.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      rows={2}
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={() => handleUpdate(note.id)}>
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

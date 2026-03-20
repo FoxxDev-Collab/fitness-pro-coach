@@ -1,6 +1,8 @@
 import { getMyProgress } from "@/lib/actions/client-portal";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { computeExerciseProgress } from "@/lib/utils/exercise-progress";
+import { ProgressCharts } from "./progress-charts";
 
 export default async function ProgressPage() {
   const { measurements, logs } = await getMyProgress();
@@ -23,6 +25,33 @@ export default async function ProgressPage() {
     return { first, last, change: last - first };
   };
 
+  // Build assignments structure for exercise progress computation
+  const assignmentMap = new Map<string, { id: string; workouts: { exercises: { name: string; type: string }[] }[] }>();
+  for (const log of logs) {
+    if (log.assignment && !assignmentMap.has(log.assignment.id)) {
+      assignmentMap.set(log.assignment.id, {
+        id: log.assignment.id,
+        workouts: log.assignment.workouts.map((w) => ({
+          exercises: w.exercises,
+        })),
+      });
+    }
+  }
+  const assignments = Array.from(assignmentMap.values());
+  const logsForProgress = logs.map((l) => ({
+    assignmentId: l.assignment?.id || "",
+    date: l.date,
+    exercises: l.exercises.map((ex) => ({
+      exerciseIndex: ex.exerciseIndex,
+      weight: ex.weight,
+      setDetails: ex.setDetails.map((s) => ({
+        weight: s.weight,
+        reps: s.reps,
+      })),
+    })),
+  }));
+  const exerciseProgress = computeExerciseProgress(logsForProgress, assignments);
+
   return (
     <div className="space-y-6">
       <div>
@@ -31,6 +60,12 @@ export default async function ProgressPage() {
           {logs.length} sessions · {measurements.length} measurements
         </p>
       </div>
+
+      {/* Charts */}
+      <ProgressCharts
+        measurements={measurements}
+        exerciseProgress={exerciseProgress}
+      />
 
       {/* Measurement Cards */}
       {measurements.length > 0 && (

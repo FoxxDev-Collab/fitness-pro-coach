@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { saveSession } from "@/lib/actions/sessions";
+import type { ExerciseHistoryEntry } from "@/lib/actions/sessions";
+import { History } from "lucide-react";
 
 type ExerciseTarget = {
   name: string;
@@ -53,6 +55,7 @@ export function LiveSession({
   clientHealth,
   workoutName,
   exercises,
+  previousData,
 }: {
   assignmentId: string;
   workoutIndex: number;
@@ -60,6 +63,7 @@ export function LiveSession({
   clientHealth: string | null;
   workoutName: string;
   exercises: ExerciseTarget[];
+  previousData?: ExerciseHistoryEntry[];
 }) {
   const router = useRouter();
   const [currentExercise, setCurrentExercise] = useState(0);
@@ -275,6 +279,39 @@ export function LiveSession({
                 Target: {ex.duration} min
               </p>
             )}
+            {/* Previous Performance */}
+            {previousData?.[currentExercise]?.lastSession && (() => {
+              const prev = previousData[currentExercise].lastSession!;
+              const dateStr = new Date(prev.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              if (ex.type === "weight") {
+                const maxWeight = Math.max(...prev.sets.map((s) => s.weight));
+                const totalSets = prev.sets.length;
+                const reps = prev.sets[0]?.reps ?? 0;
+                return (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <History className="size-3" />
+                    Last: {totalSets}×{reps} @ {maxWeight} lbs ({dateStr})
+                  </p>
+                );
+              }
+              if (ex.type === "cardio") {
+                const totalDuration = prev.sets.reduce((sum, s) => sum + s.duration, 0);
+                const totalDistance = prev.sets.reduce((sum, s) => sum + s.distance, 0);
+                return (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                    <History className="size-3" />
+                    Last: {totalDuration} min · {totalDistance} mi ({dateStr})
+                  </p>
+                );
+              }
+              const totalDuration = prev.sets.reduce((sum, s) => sum + s.duration, 0);
+              return (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <History className="size-3" />
+                  Last: {totalDuration} min ({dateStr})
+                </p>
+              );
+            })()}
           </div>
           <Button
             variant="outline"

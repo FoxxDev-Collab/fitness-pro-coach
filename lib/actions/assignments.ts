@@ -3,6 +3,8 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
+import { sendProgramAssignedEmail } from "@/lib/email";
+import { auth } from "@/lib/auth";
 
 export async function assignProgram(data: {
   clientId: string;
@@ -71,6 +73,24 @@ export async function assignProgram(data: {
 
   revalidatePath(`/clients/${data.clientId}`);
   revalidatePath("/programs");
+
+  // Send notification email if client has a linked user account
+  try {
+    if (client.userId) {
+      const clientUser = await db.user.findUnique({
+        where: { id: client.userId },
+        select: { email: true },
+      });
+      if (clientUser?.email) {
+        const session = await auth();
+        const coachName = session?.user?.name || "Your Coach";
+        await sendProgramAssignedEmail(clientUser.email, client.name, program.name, coachName);
+      }
+    }
+  } catch (e) {
+    console.error("Failed to send program assigned email:", e);
+  }
+
   return assignment;
 }
 

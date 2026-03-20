@@ -1,7 +1,10 @@
 import { db } from "@/lib/db";
 import { getCoachId } from "@/lib/auth-utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ReportsClientView } from "./reports-client";
+import { AdherenceView } from "./adherence-view";
+import { getAdherenceDashboard } from "@/lib/actions/adherence";
 
 type Client = {
   id: string;
@@ -38,7 +41,7 @@ type SessionLog = {
 export default async function ReportsPage() {
   const coachId = await getCoachId();
 
-  const [clients, assignments, logs]: [Client[], Assignment[], SessionLog[]] = await Promise.all([
+  const [clients, assignments, logs, adherence]: [Client[], Assignment[], SessionLog[], Awaited<ReturnType<typeof getAdherenceDashboard>>] = await Promise.all([
     db.client.findMany({
       where: { coachId },
       orderBy: { name: "asc" },
@@ -64,6 +67,7 @@ export default async function ReportsPage() {
       },
       orderBy: { date: "desc" },
     }),
+    getAdherenceDashboard(),
   ]);
 
   const clientStats = clients.map((c: Client) => {
@@ -120,7 +124,18 @@ export default async function ReportsPage() {
           Add clients to see reports
         </p>
       ) : (
-        <ReportsClientView clientStats={clientStats} assignments={assignments} logs={logs} />
+        <Tabs defaultValue="progress">
+          <TabsList>
+            <TabsTrigger value="progress">Client Progress</TabsTrigger>
+            <TabsTrigger value="adherence">Adherence</TabsTrigger>
+          </TabsList>
+          <TabsContent value="progress" className="mt-4">
+            <ReportsClientView clientStats={clientStats} assignments={assignments} logs={logs} />
+          </TabsContent>
+          <TabsContent value="adherence" className="mt-4">
+            <AdherenceView data={adherence} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

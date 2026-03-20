@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getCoachId } from "@/lib/auth-utils";
 import { LiveSession } from "./live-session";
+import { getExerciseHistory } from "@/lib/actions/sessions";
 
 export default async function SessionPage({
   params,
@@ -33,6 +34,8 @@ export default async function SessionPage({
 
   type WorkoutExercise = (typeof workout.exercises)[number];
 
+  const previousData = await getExerciseHistory(assignmentId, workoutIdx);
+
   return (
     <LiveSession
       assignmentId={assignmentId}
@@ -40,6 +43,7 @@ export default async function SessionPage({
       clientName={assignment.client.name}
       clientHealth={assignment.client.healthConditions}
       workoutName={workout.name}
+      previousData={previousData}
       exercises={workout.exercises.map((e: WorkoutExercise) => ({
         name: e.name,
         type: e.type,

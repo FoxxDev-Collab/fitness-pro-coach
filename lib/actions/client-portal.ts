@@ -75,8 +75,15 @@ export async function getMyProgress() {
         },
         assignment: {
           select: {
+            id: true,
             workouts: {
-              select: { name: true },
+              select: {
+                name: true,
+                exercises: {
+                  select: { name: true, type: true },
+                  orderBy: { order: "asc" },
+                },
+              },
               orderBy: { order: "asc" },
             },
           },
@@ -87,4 +94,21 @@ export async function getMyProgress() {
   ]);
 
   return { measurements, logs };
+}
+
+export async function getMyNotes() {
+  const userId = await getClientUserId();
+
+  const client = await db.client.findFirst({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!client) return [];
+
+  return db.clientNote.findMany({
+    where: { clientId: client.id },
+    include: { coach: { select: { name: true } } },
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+  });
 }

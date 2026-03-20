@@ -34,9 +34,16 @@ model User {
   clients       Client[]   @relation("CoachClients")
   exercises     Exercise[] @relation("CoachExercises")
   programs      Program[]  @relation("CoachPrograms")
+  teams         Team[]     @relation("CoachTeams")
 
   // Client relationship
   clientProfile Client?    @relation("ClientUser")
+
+  // Athlete relationship (portal access)
+  athleteProfile Athlete?  @relation("AthleteUser")
+
+  // Coach notes
+  coachNotes    ClientNote[] @relation("CoachNotes")
 }
 
 model PasswordResetToken {
@@ -133,6 +140,7 @@ model Client {
 
   assignments      Assignment[]
   measurements     Measurement[]
+  clientNotes      ClientNote[]
 
   @@index([coachId])
 }
@@ -168,8 +176,9 @@ model Program {
   coachId     String?
   coach       User?        @relation("CoachPrograms", fields: [coachId], references: [id], onDelete: Cascade)
 
-  workouts    Workout[]
-  assignments Assignment[]
+  workouts        Workout[]
+  assignments     Assignment[]
+  teamAssignments TeamAssignment[]
 
   @@index([coachId])
 }
@@ -205,19 +214,25 @@ model WorkoutExercise {
 }
 
 model Assignment {
-  id         String              @id @default(cuid())
-  clientId   String
-  programId  String
-  name       String
-  startDate  DateTime?
-  assignedAt DateTime            @default(now())
-  client     Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  program    Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
-  workouts   AssignmentWorkout[]
-  logs       SessionLog[]
+  id               String              @id @default(cuid())
+  clientId         String?
+  athleteId        String?
+  programId        String
+  teamAssignmentId String?
+  name             String
+  startDate        DateTime?
+  assignedAt       DateTime            @default(now())
+  client           Client?             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  athlete          Athlete?            @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  program          Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  teamAssignment   TeamAssignment?     @relation(fields: [teamAssignmentId], references: [id], onDelete: SetNull)
+  workouts         AssignmentWorkout[]
+  logs             SessionLog[]
 
   @@index([clientId])
+  @@index([athleteId])
   @@index([programId])
+  @@index([teamAssignmentId])
 }
 
 model AssignmentWorkout {
@@ -309,4 +324,129 @@ model Measurement {
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
+}
+
+model ClientNote {
+  id        String   @id @default(cuid())
+  clientId  String
+  coachId   String
+  content   String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coach     User     @relation("CoachNotes", fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([coachId])
+}
+
+// ─── Team Models ───────────────────────────────────────────
+
+enum EventType {
+  PRACTICE
+  GAME
+  MEETING
+  TRYOUT
+  CAMP
+  FUNDRAISER
+  OTHER
+}
+
+model Team {
+  id              String             @id @default(cuid())
+  name            String
+  sport           String?
+  season          String?
+  description     String?
+  active          Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  coachId         String
+  coach           User               @relation("CoachTeams", fields: [coachId], references: [id], onDelete: Cascade)
+
+  athletes        Athlete[]
+  teamAssignments TeamAssignment[]
+  events          TeamEvent[]
+  announcements   TeamAnnouncement[]
+
+  @@index([coachId])
+}
+
+model Athlete {
+  id           String       @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  position     String?
+  jerseyNumber String?
+  notes        String?
+  active       Boolean      @default(true)
+  parentName   String?
+  parentEmail  String?
+  parentPhone  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  teamId       String
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  userId       String?      @unique
+  user         User?        @relation("AthleteUser", fields: [userId], references: [id])
+
+  assignments  Assignment[]
+
+  @@index([teamId])
+}
+
+model TeamAssignment {
+  id          String       @id @default(cuid())
+  teamId      String
+  programId   String
+  name        String
+  startDate   DateTime?
+  assignedAt  DateTime     @default(now())
+
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  program     Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+
+  @@index([teamId])
+  @@index([programId])
+}
+
+model TeamEvent {
+  id            String    @id @default(cuid())
+  teamId        String
+  title         String
+  type          EventType @default(PRACTICE)
+  description   String?
+  location      String?
+  opponent      String?
+  startTime     DateTime
+  endTime       DateTime?
+  allDay        Boolean   @default(false)
+  notifyParents Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  team          Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([startTime])
+}
+
+model TeamAnnouncement {
+  id            String   @id @default(cuid())
+  teamId        String
+  subject       String
+  body          String
+  notifyParents Boolean  @default(true)
+  sentAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  team          Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }

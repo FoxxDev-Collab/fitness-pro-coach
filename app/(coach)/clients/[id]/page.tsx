@@ -10,6 +10,7 @@ import { ClientTabs } from "./client-tabs";
 import { InviteClientButton } from "@/components/invite-client-button";
 import { getClient } from "@/lib/actions/clients";
 import { getClientInviteStatus } from "@/lib/actions/invites";
+import { getClientNotes } from "@/lib/actions/notes";
 
 export default async function ClientDetailPage({
   params,
@@ -23,7 +24,10 @@ export default async function ClientDetailPage({
     notFound();
   }
 
-  const inviteStatus = await getClientInviteStatus(id);
+  const [inviteStatus, notes] = await Promise.all([
+    getClientInviteStatus(id),
+    getClientNotes(id),
+  ]);
 
   type ClientWithRelations = NonNullable<typeof client>;
   type AssignmentLog = ClientWithRelations["assignments"][number]["logs"][number];
@@ -97,6 +101,7 @@ export default async function ClientDetailPage({
         assignments={client.assignments}
         logs={clientLogs}
         measurements={client.measurements}
+        notes={notes}
       />
     </div>
   );
