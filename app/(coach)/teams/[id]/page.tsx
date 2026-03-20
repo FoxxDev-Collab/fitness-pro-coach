@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit2 } from "lucide-react";
+import { ArrowLeft, Edit2, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeamFormDialog } from "../team-form-dialog";
 import { DeleteTeamButton } from "./delete-button";
+import { RolloverDialog } from "./rollover-dialog";
 import { TeamTabs } from "./team-tabs";
-import { getTeam } from "@/lib/actions/teams";
+import { getTeam, getTeamDashboard } from "@/lib/actions/teams";
+import { getTeamNotes } from "@/lib/actions/team-notes";
+import { getMetricDefinitions, getMetricEntries } from "@/lib/actions/metrics";
 
 export default async function TeamDetailPage({
   params,
@@ -15,11 +17,24 @@ export default async function TeamDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const team = await getTeam(id);
+
+  const [team, dashboard, notes, metricDefinitions] = await Promise.all([
+    getTeam(id),
+    getTeamDashboard(id),
+    getTeamNotes(id),
+    getMetricDefinitions(),
+  ]);
 
   if (!team) {
     notFound();
   }
+
+  const [teamMetricEntries, athleteMetricEntries] = await Promise.all([
+    getMetricEntries({ teamId: id }),
+    Promise.all(
+      team.athletes.map((a) => getMetricEntries({ athleteId: a.id }))
+    ).then((results) => results.flat()),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -42,6 +57,13 @@ export default async function TeamDetailPage({
               </p>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
+              {!team.archivedAt && (
+                <RolloverDialog
+                  teamId={team.id}
+                  teamName={team.name}
+                  teamSport={team.sport}
+                />
+              )}
               <TeamFormDialog team={team}>
                 <Button variant="outline" size="icon">
                   <Edit2 className="size-4" />
@@ -58,7 +80,14 @@ export default async function TeamDetailPage({
         )}
       </Card>
 
-      <TeamTabs team={team} />
+      <TeamTabs
+        team={{ ...team, notes }}
+        dashboard={dashboard}
+        notes={notes}
+        metricDefinitions={metricDefinitions}
+        teamMetricEntries={teamMetricEntries}
+        athleteMetricEntries={athleteMetricEntries}
+      />
     </div>
   );
 }

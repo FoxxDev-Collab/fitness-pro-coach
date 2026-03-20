@@ -265,3 +265,177 @@ export async function deleteTeamAssignment(id: string) {
   revalidatePath(`/teams/${teamAssignment.team.id}`);
   revalidatePath("/programs");
 }
+
+// ─── Archive & Season Rollover ─────────────────────────────
+
+export async function archiveTeam(id: string) {
+  const coachId = await getCoachId();
+  await db.team.update({
+    where: { id, coachId },
+    data: { archivedAt: new Date(), active: false },
+  });
+  revalidatePath("/teams");
+  revalidatePath(`/teams/${id}`);
+}
+
+export async function rolloverTeam(
+  id: string,
+  data: {
+    name: string;
+    season?: string;
+    sport?: string;
+    keepAthletes: boolean;
+  }
+) {
+  const coachId = await getCoachId();
+  const oldTeam = await db.team.findFirst({
+    where: { id, coachId },
+    include: { athletes: { where: { active: true } } },
+  });
+  if (!oldTeam) throw new Error("Team not found");
+
+  // Create new team
+  const newTeam = await db.team.create({
+    data: {
+      name: data.name,
+      season: data.season,
+      sport: data.sport || oldTeam.sport,
+      description: oldTeam.description,
+      coachId,
+    },
+  });
+
+  // Copy athletes if requested
+  if (data.keepAthletes && oldTeam.athletes.length > 0) {
+    await db.athlete.createMany({
+      data: oldTeam.athletes.map((a) => ({
+        name: a.name,
+        email: a.email,
+        phone: a.phone,
+        gender: a.gender,
+        position: a.position,
+        jerseyNumber: a.jerseyNumber,
+        parentName: a.parentName,
+        parentEmail: a.parentEmail,
+        parentPhone: a.parentPhone,
+        teamId: newTeam.id,
+      })),
+    });
+  }
+
+  // Archive old team
+  await db.team.update({
+    where: { id },
+    data: { archivedAt: new Date(), active: false },
+  });
+
+  revalidatePath("/teams");
+  return newTeam;
+}
+
+// ─── Team Dashboard ────────────────────────────────────────
+
+export async function getTeamDashboard(teamId: string) {
+  const coachId = await getCoachId();
+  const team = await db.team.findFirst({
+    where: { id: teamId, coachId },
+    include: {
+      athletes: {
+        where: { active: true },
+        select: {
+          id: true,
+          name: true,
+          assignments: {
+            select: {
+              logs: {
+                select: { date: true },
+                orderBy: { date: "desc" },
+              },
+            },
+          },
+        },
+      },
+      teamAssignments: {
+        select: {
+          id: true,
+          name: true,
+          program: { select: { name: true } },
+          assignments: {
+            select: {
+              athleteId: true,
+              logs: { select: { id: true }, take: 1 },
+            },
+          },
+        },
+      },
+      events: {
+        where: { startTime: { gte: new Date() } },
+        orderBy: { startTime: "asc" },
+        take: 5,
+      },
+    },
+  });
+
+  if (!team) throw new Error("Team not found");
+
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // Compute athlete stats
+  const athleteStats = team.athletes.map((a) => {
+    const allLogs = a.assignments.flatMap((asgn) => asgn.logs);
+    const lastSession = allLogs[0]?.date ?? null;
+    return {
+      id: a.id,
+      name: a.name,
+      totalSessions: allLogs.length,
+      sessionsThisWeek: allLogs.filter((l) => new Date(l.date) >= weekAgo).length,
+      lastSessionDate: lastSession,
+    };
+  }).sort((a, b) => b.totalSessions - a.totalSessions);
+
+  const totalSessions = athleteStats.reduce((s, a) => s + a.totalSessions, 0);
+  const sessionsThisWeek = athleteStats.reduce((s, a) => s + a.sessionsThisWeek, 0);
+  const sessionsThisMonth = athleteStats.reduce((s, a) => {
+    const logs = team.athletes.find((at) => at.id === a.id)!.assignments.flatMap((asgn) => asgn.logs);
+    return s + logs.filter((l) => new Date(l.date) >= monthAgo).length;
+  }, 0);
+
+  // Weekly activity (last 8 weeks)
+  const weeklyActivity: { week: string; count: number }[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const start = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+    const end = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+    const count = athleteStats.reduce((s, a) => {
+      const logs = team.athletes.find((at) => at.id === a.id)!.assignments.flatMap((asgn) => asgn.logs);
+      return s + logs.filter((l) => {
+        const d = new Date(l.date);
+        return d >= start && d < end;
+      }).length;
+    }, 0);
+    weeklyActivity.push({
+      week: start.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      count,
+    });
+  }
+
+  // Program completion
+  const programCompletion = team.teamAssignments.map((ta) => ({
+    id: ta.id,
+    name: ta.program.name,
+    total: ta.assignments.length,
+    started: ta.assignments.filter((a) => a.logs.length > 0).length,
+  }));
+
+  return {
+    athleteCount: team.athletes.length,
+    totalSessions,
+    sessionsThisWeek,
+    sessionsThisMonth,
+    athleteStats,
+    weeklyActivity,
+    programCompletion,
+    upcomingEvents: team.events,
+  };
+}

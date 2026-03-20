@@ -43,9 +43,12 @@ model User {
   athleteProfile Athlete?  @relation("AthleteUser")
 
   // Coach notes
-  coachNotes     ClientNote[]   @relation("CoachNotes")
-  teamNotes      TeamNote[]     @relation("CoachTeamNotes")
-  athleteNotes   AthleteNote[]  @relation("CoachAthleteNotes")
+  coachNotes         ClientNote[]       @relation("CoachNotes")
+  teamNotes          TeamNote[]         @relation("CoachTeamNotes")
+  athleteNotes       AthleteNote[]      @relation("CoachAthleteNotes")
+
+  // Coach metrics
+  metricDefinitions  MetricDefinition[] @relation("CoachMetrics")
 }
 
 model PasswordResetToken {
@@ -375,6 +378,7 @@ model Team {
   events          TeamEvent[]
   announcements   TeamAnnouncement[]
   notes           TeamNote[]
+  metricEntries   MetricEntry[]      @relation("TeamMetricEntries")
 
   @@index([coachId])
 }
@@ -403,6 +407,7 @@ model Athlete {
 
   assignments    Assignment[]
   athleteNotes   AthleteNote[]
+  metricEntries  MetricEntry[]  @relation("AthleteMetricEntries")
 
   @@index([teamId])
 }
@@ -438,7 +443,8 @@ model TeamEvent {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  team          Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team          Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  metricEntries MetricEntry[] @relation("EventMetricEntries")
 
   @@index([teamId])
   @@index([startTime])
@@ -498,4 +504,50 @@ model AthleteNote {
 
   @@index([athleteId])
   @@index([coachId])
+}
+
+// ─── Custom Metrics ────────────────────────────────────────
+
+enum MetricScope {
+  TEAM
+  ATHLETE
+}
+
+model MetricDefinition {
+  id          String       @id @default(cuid())
+  coachId     String
+  name        String
+  unit        String
+  scope       MetricScope
+  description String?
+  archived    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  coach       User         @relation("CoachMetrics", fields: [coachId], references: [id], onDelete: Cascade)
+  entries     MetricEntry[]
+
+  @@index([coachId])
+}
+
+model MetricEntry {
+  id                   String           @id @default(cuid())
+  metricDefinitionId   String
+  teamId               String?
+  athleteId            String?
+  eventId              String?
+  value                Float
+  notes                String?
+  date                 DateTime
+  createdAt            DateTime         @default(now())
+
+  metricDefinition     MetricDefinition @relation(fields: [metricDefinitionId], references: [id], onDelete: Cascade)
+  team                 Team?            @relation("TeamMetricEntries", fields: [teamId], references: [id], onDelete: Cascade)
+  athlete              Athlete?         @relation("AthleteMetricEntries", fields: [athleteId], references: [id], onDelete: Cascade)
+  event                TeamEvent?       @relation("EventMetricEntries", fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([metricDefinitionId])
+  @@index([teamId])
+  @@index([athleteId])
+  @@index([eventId])
 }

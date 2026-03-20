@@ -13,6 +13,14 @@ export async function getClients() {
       _count: {
         select: { assignments: true },
       },
+      assignments: {
+        select: {
+          logs: {
+            select: { date: true },
+            orderBy: { date: "desc" },
+          },
+        },
+      },
     },
   });
 }
@@ -27,7 +35,9 @@ export async function getClient(id: string) {
           program: true,
           workouts: {
             include: {
-              exercises: true,
+              exercises: {
+                orderBy: { order: "asc" },
+              },
             },
             orderBy: { order: "asc" },
           },

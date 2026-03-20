@@ -31,7 +31,7 @@ type Assignment = {
   workouts: {
     id: string;
     name: string;
-    exercises: { id: string }[];
+    exercises: { id: string; name: string; type: string }[];
   }[];
   logs: {
     id: string;
@@ -337,13 +337,15 @@ function HistoryTab({
                 </div>
               </div>
               {log.exercises.map((ex: Log["exercises"][number]) => {
+                const exerciseName = workout?.exercises?.[ex.exerciseIndex]?.name
+                  ?? `Exercise ${ex.exerciseIndex + 1}`;
                 return (
                   <div
                     key={ex.id}
                     className="text-sm border-t pt-2 mt-2"
                   >
                     <p className="font-medium text-sm">
-                      Exercise {ex.exerciseIndex + 1}
+                      {exerciseName}
                     </p>
                     {ex.setDetails.length > 0 ? (
                       <p className="text-muted-foreground">
