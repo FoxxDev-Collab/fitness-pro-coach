@@ -52,16 +52,10 @@ export async function signUp(formData: FormData) {
     await sendVerificationEmail(email, verifyToken.token);
   } catch (e) {
     console.error("Failed to send verification email:", e);
+    return { error: "Account created but we couldn't send the verification email. Please try again or contact support." };
   }
 
-  // Sign them in (unverified — they can use the app but we'll prompt to verify)
-  try {
-    await signIn("credentials", { email, password, redirect: false });
-  } catch {
-    return { error: "Account created. Please check your email to verify, then log in." };
-  }
-
-  redirect("/clients");
+  return { success: true, email };
 }
 
 // ─── Login ───────────────────────────────────────────────
@@ -77,6 +71,7 @@ export async function login(formData: FormData) {
   const user = await db.user.findUnique({ where: { email } });
   if (!user?.password) return { error: "Invalid email or password" };
   if (!user.active) return { error: "Account is disabled" };
+  if (!user.emailVerified) return { error: "EMAIL_NOT_VERIFIED" };
 
   const validPw = await bcrypt.compare(password, user.password);
   if (!validPw) return { error: "Invalid email or password" };

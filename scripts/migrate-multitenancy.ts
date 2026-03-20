@@ -37,6 +37,7 @@ async function main() {
         password: hashed,
         name: coachName,
         role: "COACH",
+        emailVerified: new Date(),
       },
     });
     console.log(`Created coach: ${coachEmail} (password: ${coachPassword})`);
@@ -81,6 +82,7 @@ async function main() {
         password: hashed,
         name: "Admin",
         role: "ADMIN",
+        emailVerified: new Date(),
       },
     });
     console.log(`\nCreated admin: ${adminEmail} (password: ${adminPassword})`);
