@@ -55,6 +55,7 @@ export function LiveSession({
   workoutIndex,
   clientName,
   clientHealth,
+  clientGender,
   workoutName,
   exercises,
   previousData,
@@ -63,6 +64,7 @@ export function LiveSession({
   workoutIndex: number;
   clientName: string;
   clientHealth: string | null;
+  clientGender?: string | null;
   workoutName: string;
   exercises: ExerciseTarget[];
   previousData?: ExerciseHistoryEntry[];
@@ -328,7 +330,7 @@ export function LiveSession({
         {/* Muscle Map */}
         {ex.muscles && ex.muscles.length > 0 && (
           <div className="flex items-center justify-center gap-3">
-            <BodyMap activeMuscles={ex.muscles} size="sm" showLabels={false} />
+            <BodyMap activeMuscles={ex.muscles} gender={(clientGender as "male" | "female") || "male"} size="sm" showLabels={false} />
             <div className="flex flex-wrap gap-1">
               {ex.muscles.map((m) => (
                 <span key={m} className="bg-primary/15 text-primary text-xs px-2 py-0.5 rounded-full font-medium">

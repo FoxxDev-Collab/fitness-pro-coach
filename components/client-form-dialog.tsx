@@ -9,6 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -22,6 +29,7 @@ type Client = {
   name: string;
   email: string | null;
   phone: string | null;
+  gender: string | null;
   goals: string | null;
   healthConditions: string | null;
   notes: string | null;
@@ -42,6 +50,7 @@ export function ClientFormDialog({
     name: client?.name || "",
     email: client?.email || "",
     phone: client?.phone || "",
+    gender: client?.gender || "",
     goals: client?.goals || "",
     healthConditions: client?.healthConditions || "",
     notes: client?.notes || "",
@@ -60,6 +69,7 @@ export function ClientFormDialog({
           ...form,
           email: form.email || undefined,
           phone: form.phone || undefined,
+          gender: form.gender || undefined,
           goals: form.goals || undefined,
           healthConditions: form.healthConditions || undefined,
           notes: form.notes || undefined,
@@ -69,6 +79,7 @@ export function ClientFormDialog({
           ...form,
           email: form.email || undefined,
           phone: form.phone || undefined,
+          gender: form.gender || undefined,
           goals: form.goals || undefined,
           healthConditions: form.healthConditions || undefined,
           notes: form.notes || undefined,
@@ -118,6 +129,18 @@ export function ClientFormDialog({
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
             />
+          </div>
+          <div>
+            <Label htmlFor="gender">Gender</Label>
+            <Select value={form.gender} onValueChange={(v) => set("gender", v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label htmlFor="goals">Goals</Label>

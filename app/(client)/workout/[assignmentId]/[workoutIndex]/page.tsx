@@ -19,7 +19,7 @@ export default async function ClientWorkoutPage({
   const assignment = await db.assignment.findUnique({
     where: { id: assignmentId },
     include: {
-      client: { select: { userId: true, name: true, healthConditions: true } },
+      client: { select: { userId: true, name: true, healthConditions: true, gender: true } },
       workouts: {
         include: { exercises: true },
         orderBy: { order: "asc" },
@@ -54,6 +54,7 @@ export default async function ClientWorkoutPage({
       workoutIndex={workoutIndex}
       clientName={assignment.client.name}
       clientHealth={assignment.client.healthConditions}
+      clientGender={assignment.client.gender ?? null}
       workoutName={workout.name}
       previousData={previousData}
       exercises={workout.exercises.map((e) => ({

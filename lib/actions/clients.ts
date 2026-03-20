@@ -54,6 +54,7 @@ export async function createClient(data: {
   name: string;
   email?: string;
   phone?: string;
+  gender?: string;
   goals?: string;
   healthConditions?: string;
   notes?: string;
@@ -77,6 +78,7 @@ export async function updateClient(
     name?: string;
     email?: string;
     phone?: string;
+    gender?: string;
     goals?: string;
     healthConditions?: string;
     notes?: string;

@@ -43,7 +43,9 @@ model User {
   athleteProfile Athlete?  @relation("AthleteUser")
 
   // Coach notes
-  coachNotes    ClientNote[] @relation("CoachNotes")
+  coachNotes     ClientNote[]   @relation("CoachNotes")
+  teamNotes      TeamNote[]     @relation("CoachTeamNotes")
+  athleteNotes   AthleteNote[]  @relation("CoachAthleteNotes")
 }
 
 model PasswordResetToken {
@@ -125,6 +127,7 @@ model Client {
   name             String
   email            String?
   phone            String?
+  gender           String?
   goals            String?
   healthConditions String?
   notes            String?
@@ -360,6 +363,7 @@ model Team {
   season          String?
   description     String?
   active          Boolean            @default(true)
+  archivedAt      DateTime?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -370,6 +374,7 @@ model Team {
   teamAssignments TeamAssignment[]
   events          TeamEvent[]
   announcements   TeamAnnouncement[]
+  notes           TeamNote[]
 
   @@index([coachId])
 }
@@ -379,6 +384,7 @@ model Athlete {
   name         String
   email        String?
   phone        String?
+  gender       String?
   position     String?
   jerseyNumber String?
   notes        String?
@@ -395,7 +401,8 @@ model Athlete {
   userId       String?      @unique
   user         User?        @relation("AthleteUser", fields: [userId], references: [id])
 
-  assignments  Assignment[]
+  assignments    Assignment[]
+  athleteNotes   AthleteNote[]
 
   @@index([teamId])
 }
@@ -449,4 +456,46 @@ model TeamAnnouncement {
   team          Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
+}
+
+// ─── Team & Athlete Notes ──────────────────────────────────
+
+enum NoteCategory {
+  GENERAL
+  GAME
+  PRACTICE
+  MEETING
+  SCOUTING
+}
+
+model TeamNote {
+  id        String       @id @default(cuid())
+  teamId    String
+  coachId   String
+  content   String
+  pinned    Boolean      @default(false)
+  category  NoteCategory @default(GENERAL)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coach     User         @relation("CoachTeamNotes", fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([coachId])
+}
+
+model AthleteNote {
+  id        String       @id @default(cuid())
+  athleteId String
+  coachId   String
+  content   String
+  pinned    Boolean      @default(false)
+  category  NoteCategory @default(GENERAL)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  athlete   Athlete      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  coach     User         @relation("CoachAthleteNotes", fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([athleteId])
+  @@index([coachId])
 }
