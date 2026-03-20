@@ -37,7 +37,7 @@ export function InviteForm({
       <CardHeader>
         <CardTitle>Welcome, {clientName}</CardTitle>
         <CardDescription>
-          {coachName} has invited you to FitCoach Pro. Set a password to get started.
+          {coachName} has invited you to Praevio. Set a password to get started.
         </CardDescription>
       </CardHeader>
       <form action={handleSubmit}>

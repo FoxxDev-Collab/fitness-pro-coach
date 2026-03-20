@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Model, { IExerciseData } from "react-body-highlighter";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,31 @@ type BodyMapProps = {
   className?: string;
   size?: "sm" | "md" | "lg";
 };
+
+// Resolve a CSS variable to its computed color value
+function useCssColor(cssVar: string, fallback: string): string {
+  const [color, setColor] = useState(fallback);
+  useEffect(() => {
+    const root = document.documentElement;
+    const computed = getComputedStyle(root).getPropertyValue(cssVar).trim();
+    if (computed) {
+      setColor(`oklch(${computed})`);
+    }
+  }, [cssVar]);
+  // Re-resolve on theme change
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const root = document.documentElement;
+      const computed = getComputedStyle(root).getPropertyValue(cssVar).trim();
+      if (computed) {
+        setColor(`oklch(${computed})`);
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, [cssVar]);
+  return color;
+}
 
 // Map our app's muscle names to react-body-highlighter muscle identifiers
 const MUSCLE_MAP: Record<string, string[]> = {
@@ -77,6 +103,9 @@ export function BodyMap({
   className,
   size = "md",
 }: BodyMapProps) {
+  const highlightColor = useCssColor("--primary", "#3b82f6");
+  const bodyColor = useCssColor("--muted", "#e5e7eb");
+
   const data = mapMusclesToData(activeMuscles);
   if (data.length === 0) return null;
 
@@ -93,8 +122,8 @@ export function BodyMap({
           <Model
             data={data}
             style={sizeStyle}
-            highlightedColors={["hsl(var(--primary))"]}
-            bodyColor="hsl(var(--muted))"
+            highlightedColors={[highlightColor]}
+            bodyColor={bodyColor}
           />
           <span className="text-[10px] text-muted-foreground font-medium tracking-wider mt-0.5">
             FRONT
@@ -107,8 +136,8 @@ export function BodyMap({
             data={data}
             type="posterior"
             style={sizeStyle}
-            highlightedColors={["hsl(var(--primary))"]}
-            bodyColor="hsl(var(--muted))"
+            highlightedColors={[highlightColor]}
+            bodyColor={bodyColor}
           />
           <span className="text-[10px] text-muted-foreground font-medium tracking-wider mt-0.5">
             BACK

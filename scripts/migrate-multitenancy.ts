@@ -23,7 +23,7 @@ async function main() {
   console.log("Starting multi-tenancy migration...\n");
 
   // 1. Create default coach user (or find existing)
-  const coachEmail = process.env.DEFAULT_COACH_EMAIL || "coach@fitcoachpro.com";
+  const coachEmail = process.env.DEFAULT_COACH_EMAIL || "coach@praevio.app";
   const coachPassword = process.env.DEFAULT_COACH_PASSWORD || "changeme123";
   const coachName = process.env.DEFAULT_COACH_NAME || "Coach";
 
@@ -70,7 +70,7 @@ async function main() {
   console.log(`Updated programs: ${programsUpdated}`);
 
   // 5. Create admin user
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@fitcoachpro.com";
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@praevio.app";
   const adminPassword = process.env.ADMIN_PASSWORD || "admin12345";
 
   let admin = await db.user.findUnique({ where: { email: adminEmail } });

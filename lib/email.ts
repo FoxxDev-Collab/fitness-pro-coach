@@ -12,7 +12,7 @@ function getTransport() {
   });
 }
 
-const emailFrom = () => process.env.EMAIL_FROM || "FitCoach Pro <noreply@fitcoachpro.com>";
+const emailFrom = () => process.env.EMAIL_FROM || "Praevio <noreply@praevio.app>";
 const baseUrl = () => process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000";
 
 function emailWrapper(title: string, body: string) {
@@ -21,7 +21,7 @@ function emailWrapper(title: string, body: string) {
       <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">${title}</h2>
       ${body}
       <p style="color: #9ca3af; font-size: 12px; margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-        FitCoach Pro
+        Praevio
       </p>
     </div>
   `;
@@ -46,7 +46,7 @@ export async function sendVerificationEmail(to: string, token: string) {
   const url = `${baseUrl()}/verify-email/${token}`;
   await send(
     to,
-    "Verify your email - FitCoach Pro",
+    "Verify your email - Praevio",
     emailWrapper(
       "Verify your email",
       `
@@ -68,7 +68,7 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   const url = `${baseUrl()}/reset-password/${token}`;
   await send(
     to,
-    "Reset your password - FitCoach Pro",
+    "Reset your password - Praevio",
     emailWrapper(
       "Reset your password",
       `
@@ -94,7 +94,7 @@ export async function sendProgramAssignedEmail(
 ) {
   await send(
     to,
-    `New program assigned - FitCoach Pro`,
+    `New program assigned - Praevio`,
     emailWrapper(
       "New Program Assigned",
       `
@@ -118,7 +118,7 @@ export async function sendNoteAddedEmail(
 ) {
   await send(
     to,
-    `New note from ${coachName} - FitCoach Pro`,
+    `New note from ${coachName} - Praevio`,
     emailWrapper(
       "New Note from Your Coach",
       `
@@ -149,7 +149,7 @@ export async function sendSessionCompletedEmail(
   });
   await send(
     to,
-    `${clientName} completed a workout - FitCoach Pro`,
+    `${clientName} completed a workout - Praevio`,
     emailWrapper(
       "Session Completed",
       `
@@ -188,7 +188,7 @@ export async function sendTeamEventEmail(
 
   await send(
     to,
-    `${teamName}: ${eventTitle} - FitCoach Pro`,
+    `${teamName}: ${eventTitle} - Praevio`,
     emailWrapper(
       `${eventType.charAt(0) + eventType.slice(1).toLowerCase()} Scheduled`,
       `
@@ -213,7 +213,7 @@ export async function sendTeamAnnouncementEmail(
 ) {
   await send(
     to,
-    `${teamName}: ${subject} - FitCoach Pro`,
+    `${teamName}: ${subject} - Praevio`,
     emailWrapper(
       subject,
       `
@@ -231,9 +231,9 @@ export async function sendTeamAnnouncementEmail(
 export async function sendInviteEmail(to: string, inviteUrl: string, coachName: string) {
   await send(
     to,
-    `${coachName} invited you to FitCoach Pro`,
+    `${coachName} invited you to Praevio`,
     emailWrapper(
-      "You're invited to FitCoach Pro",
+      "You're invited to Praevio",
       `
         <p style="color: #6b7280; margin-bottom: 24px;">
           ${coachName} has invited you to join as a client. Set up your account to view your workout programs and track your progress.

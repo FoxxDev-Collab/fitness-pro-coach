@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitCoach Pro",
-  description: "Personal training client management app",
+  title: "Praevio",
+  description: "Lead the way — elite coaching platform",
 };
 
 export default function RootLayout({

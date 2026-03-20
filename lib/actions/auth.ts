@@ -217,7 +217,7 @@ export async function setupMfa() {
   const secret = new OTPAuth.Secret();
 
   const totp = new OTPAuth.TOTP({
-    issuer: "FitCoach Pro",
+    issuer: "Praevio",
     label: session.user.email || "user",
     algorithm: "SHA1",
     digits: 6,
