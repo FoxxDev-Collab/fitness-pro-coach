@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { PasswordStrength } from "@/components/password-strength";
 import { signUp } from "@/lib/actions/auth";
 
 export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState("");
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -37,25 +39,11 @@ export default function SignUpPage() {
           )}
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              placeholder="Jane Smith"
-              required
-              autoComplete="name"
-            />
+            <Input id="name" name="name" type="text" placeholder="Jane Smith" required autoComplete="name" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
+            <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -63,20 +51,16 @@ export default function SignUpPage() {
               id="password"
               name="password"
               type="password"
-              placeholder="Min 8 characters"
               required
               autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
+            <PasswordStrength password={password} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              required
-              autoComplete="new-password"
-            />
+            <Input id="confirmPassword" name="confirmPassword" type="password" required autoComplete="new-password" />
           </div>
         </CardContent>
         <CardFooter className="flex-col gap-4">
