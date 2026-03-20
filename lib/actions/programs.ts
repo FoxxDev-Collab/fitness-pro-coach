@@ -2,9 +2,12 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getCoachId } from "@/lib/auth-utils";
 
 export async function getPrograms() {
+  const coachId = await getCoachId();
   return db.program.findMany({
+    where: { coachId },
     orderBy: { name: "asc" },
     include: {
       workouts: {
@@ -25,8 +28,9 @@ export async function getPrograms() {
 }
 
 export async function getProgram(id: string) {
-  return db.program.findUnique({
-    where: { id },
+  const coachId = await getCoachId();
+  return db.program.findFirst({
+    where: { id, coachId },
     include: {
       workouts: {
         include: {
@@ -66,10 +70,12 @@ export async function createProgram(data: {
   description?: string;
   workouts: WorkoutInput[];
 }) {
+  const coachId = await getCoachId();
   const program = await db.program.create({
     data: {
       name: data.name,
       description: data.description,
+      coachId,
       workouts: {
         create: data.workouts.map((w: WorkoutInput) => ({
           name: w.name,
@@ -103,7 +109,11 @@ export async function updateProgram(
     workouts: WorkoutInput[];
   }
 ) {
-  // Delete existing workouts and recreate
+  const coachId = await getCoachId();
+  // Verify ownership
+  const existing = await db.program.findFirst({ where: { id, coachId } });
+  if (!existing) throw new Error("Program not found");
+
   await db.workout.deleteMany({ where: { programId: id } });
 
   const program = await db.program.update({
@@ -138,13 +148,15 @@ export async function updateProgram(
 }
 
 export async function deleteProgram(id: string) {
-  await db.program.delete({ where: { id } });
+  const coachId = await getCoachId();
+  await db.program.delete({ where: { id, coachId } });
   revalidatePath("/programs");
 }
 
 export async function duplicateProgram(id: string) {
-  const original = await db.program.findUnique({
-    where: { id },
+  const coachId = await getCoachId();
+  const original = await db.program.findFirst({
+    where: { id, coachId },
     include: {
       workouts: {
         include: {
@@ -164,6 +176,7 @@ export async function duplicateProgram(id: string) {
     data: {
       name: `${original.name} (Copy)`,
       description: original.description,
+      coachId,
       workouts: {
         create: original.workouts.map((w: OriginalWorkout) => ({
           name: w.name,

@@ -6,6 +6,89 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  COACH
+  CLIENT
+}
+
+// ─── Auth Models ────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(COACH)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      AuthSession[]
+
+  // Coach relationships
+  clients       Client[]   @relation("CoachClients")
+  exercises     Exercise[] @relation("CoachExercises")
+  programs      Program[]  @relation("CoachPrograms")
+
+  // Client relationship
+  clientProfile Client?    @relation("ClientUser")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model AuthSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model InviteToken {
+  id        String   @id @default(cuid())
+  email     String
+  clientId  String
+  coachId   String
+  token     String   @unique @default(cuid())
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+}
+
+// ─── Domain Models ──────────────────────────────────────────
+
 model Client {
   id               String        @id @default(cuid())
   name             String
@@ -17,15 +100,24 @@ model Client {
   active           Boolean       @default(true)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+
+  coachId          String?
+  coach            User?         @relation("CoachClients", fields: [coachId], references: [id], onDelete: Cascade)
+
+  userId           String?       @unique
+  user             User?         @relation("ClientUser", fields: [userId], references: [id])
+
   assignments      Assignment[]
   measurements     Measurement[]
+
+  @@index([coachId])
 }
 
 model Exercise {
   id           String             @id @default(cuid())
   name         String
   category     String             @default("Strength")
-  type         String             @default("weight") // weight, cardio, timed
+  type         String             @default("weight")
   equipment    String?
   muscles      String[]
   instructions String?
@@ -33,7 +125,13 @@ model Exercise {
   image        String?
   custom       Boolean            @default(false)
   createdAt    DateTime           @default(now())
+
+  coachId      String?
+  coach        User?              @relation("CoachExercises", fields: [coachId], references: [id], onDelete: Cascade)
+
   workoutExercises WorkoutExercise[]
+
+  @@index([coachId])
 }
 
 model Program {
@@ -42,8 +140,14 @@ model Program {
   description String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  coachId     String?
+  coach       User?        @relation("CoachPrograms", fields: [coachId], references: [id], onDelete: Cascade)
+
   workouts    Workout[]
   assignments Assignment[]
+
+  @@index([coachId])
 }
 
 model Workout {
@@ -65,9 +169,9 @@ model WorkoutExercise {
   sets       Int      @default(3)
   reps       Int      @default(10)
   weight     Float    @default(0)
-  duration   Float    @default(0) // minutes
-  distance   Float    @default(0) // miles
-  rest       Int      @default(60) // seconds
+  duration   Float    @default(0)
+  distance   Float    @default(0)
+  rest       Int      @default(60)
   notes      String?
   workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
@@ -128,7 +232,7 @@ model SessionLog {
   assignmentId String
   workoutIndex Int
   sessionNotes String?
-  duration     Int?              // minutes
+  duration     Int?
   date         DateTime          @default(now())
   createdAt    DateTime          @default(now())
   assignment   Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)

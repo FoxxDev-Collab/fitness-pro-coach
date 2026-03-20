@@ -2,9 +2,12 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getCoachId } from "@/lib/auth-utils";
 
 export async function getClients() {
+  const coachId = await getCoachId();
   return db.client.findMany({
+    where: { coachId },
     orderBy: { name: "asc" },
     include: {
       _count: {
@@ -15,8 +18,9 @@ export async function getClients() {
 }
 
 export async function getClient(id: string) {
-  return db.client.findUnique({
-    where: { id },
+  const coachId = await getCoachId();
+  return db.client.findFirst({
+    where: { id, coachId },
     include: {
       assignments: {
         include: {
@@ -55,10 +59,12 @@ export async function createClient(data: {
   notes?: string;
   active?: boolean;
 }) {
+  const coachId = await getCoachId();
   const client = await db.client.create({
     data: {
       ...data,
       active: data.active ?? true,
+      coachId,
     },
   });
   revalidatePath("/clients");
@@ -77,8 +83,9 @@ export async function updateClient(
     active?: boolean;
   }
 ) {
+  const coachId = await getCoachId();
   const client = await db.client.update({
-    where: { id },
+    where: { id, coachId },
     data,
   });
   revalidatePath("/clients");
@@ -87,6 +94,7 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: string) {
-  await db.client.delete({ where: { id } });
+  const coachId = await getCoachId();
+  await db.client.delete({ where: { id, coachId } });
   revalidatePath("/clients");
 }

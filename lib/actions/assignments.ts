@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getCoachId } from "@/lib/auth-utils";
 
 export async function assignProgram(data: {
   clientId: string;
@@ -9,9 +10,15 @@ export async function assignProgram(data: {
   name: string;
   startDate?: Date;
 }) {
-  // Get the program with its workouts and exercises
-  const program = await db.program.findUnique({
-    where: { id: data.programId },
+  const coachId = await getCoachId();
+
+  // Verify client belongs to this coach
+  const client = await db.client.findFirst({ where: { id: data.clientId, coachId } });
+  if (!client) throw new Error("Client not found");
+
+  // Verify program belongs to this coach
+  const program = await db.program.findFirst({
+    where: { id: data.programId, coachId },
     include: {
       workouts: {
         include: {
@@ -31,7 +38,6 @@ export async function assignProgram(data: {
   type ProgramWorkout = (typeof program.workouts)[number];
   type WorkoutExercise = ProgramWorkout["exercises"][number];
 
-  // Create the assignment with copied workouts and exercises
   const assignment = await db.assignment.create({
     data: {
       clientId: data.clientId,
@@ -69,10 +75,14 @@ export async function assignProgram(data: {
 }
 
 export async function deleteAssignment(id: string) {
-  const assignment = await db.assignment.findUnique({ where: { id } });
-  if (assignment) {
-    await db.assignment.delete({ where: { id } });
-    revalidatePath(`/clients/${assignment.clientId}`);
-    revalidatePath("/programs");
-  }
+  const coachId = await getCoachId();
+  const assignment = await db.assignment.findUnique({
+    where: { id },
+    include: { client: { select: { coachId: true, id: true } } },
+  });
+  if (!assignment || assignment.client.coachId !== coachId) return;
+
+  await db.assignment.delete({ where: { id } });
+  revalidatePath(`/clients/${assignment.client.id}`);
+  revalidatePath("/programs");
 }

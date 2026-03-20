@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { NavTabs } from "@/components/nav-tabs";
+import { Providers } from "@/components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,13 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh bg-background`}
       >
-        <header className="bg-gradient-to-r from-purple-700 to-indigo-700 p-4 shadow-lg">
-          <h1 className="text-2xl font-bold text-white">FitCoach Pro</h1>
-        </header>
-        <NavTabs />
-        <main className="p-4 max-w-6xl mx-auto">{children}</main>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

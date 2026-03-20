@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
 
 type SessionSetInput = {
   setNumber: number;
@@ -30,6 +31,22 @@ export async function saveSession(data: {
   date: Date;
   exercises: SessionExerciseInput[];
 }) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Not authenticated");
+
+  // Verify access: coach owns the client, or client owns the assignment
+  const assignment = await db.assignment.findUnique({
+    where: { id: data.assignmentId },
+    include: { client: { select: { coachId: true, userId: true, id: true } } },
+  });
+
+  if (!assignment) throw new Error("Assignment not found");
+
+  const isCoach = session.user.role === "COACH" && assignment.client.coachId === session.user.id;
+  const isClient = session.user.role === "CLIENT" && assignment.client.userId === session.user.id;
+
+  if (!isCoach && !isClient) throw new Error("Unauthorized");
+
   const sessionLog = await db.sessionLog.create({
     data: {
       assignmentId: data.assignmentId,
@@ -60,16 +77,10 @@ export async function saveSession(data: {
     },
   });
 
-  // Get the client ID for revalidation
-  const assignment = await db.assignment.findUnique({
-    where: { id: data.assignmentId },
-    select: { clientId: true },
-  });
-
-  if (assignment) {
-    revalidatePath(`/clients/${assignment.clientId}`);
-  }
+  revalidatePath(`/clients/${assignment.client.id}`);
   revalidatePath("/reports");
+  revalidatePath("/dashboard");
+  revalidatePath("/progress");
 
   return sessionLog;
 }
