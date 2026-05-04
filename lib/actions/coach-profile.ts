@@ -10,6 +10,10 @@ import {
   type UpdateCoachProfileInput,
 } from "@/lib/validations/coach-profile";
 
+// Note: types cannot be re-exported from a "use server" file under Turbopack.
+// Consumers should import UpdateCoachProfileInput directly from
+// "@/lib/validations/coach-profile" if they need the type.
+
 export type CoachProfile = {
   name: string | null;
   email: string;
@@ -41,8 +45,6 @@ export async function getCoachProfile(): Promise<CoachProfile> {
   if (!user) throw new Error("Coach not found");
   return user;
 }
-
-export type { UpdateCoachProfileInput };
 
 function normalizeSlug(raw: string): string {
   return raw

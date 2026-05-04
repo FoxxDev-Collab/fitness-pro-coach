@@ -49,23 +49,31 @@ export function CoachProfileSection(props: {
   >({ state: "idle" });
   const [copied, setCopied] = useState(false);
 
+  const slugDirty = !!slug && slug !== props.intakeSlug;
+  const displaySlugStatus = slugDirty ? slugStatus : ({ state: "idle" } as const);
+
   useEffect(() => {
-    if (slug === props.intakeSlug || !slug) {
-      setSlugStatus({ state: "idle" });
-      return;
-    }
-    setSlugStatus({ state: "checking" });
+    if (!slugDirty) return;
+    let cancelled = false;
     const t = setTimeout(async () => {
+      if (cancelled) return;
+      setSlugStatus({ state: "checking" });
       const r = await checkSlugAvailable(slug);
-      setSlugStatus(r.available ? { state: "ok" } : { state: "error", message: r.reason ?? "Not available" });
+      if (cancelled) return;
+      setSlugStatus(
+        r.available ? { state: "ok" } : { state: "error", message: r.reason ?? "Not available" },
+      );
     }, 400);
-    return () => clearTimeout(t);
-  }, [slug, props.intakeSlug]);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [slug, slugDirty]);
 
   function handleSave() {
     setMsg(null);
-    if (slugStatus.state === "error") {
-      setMsg({ type: "error", text: slugStatus.message });
+    if (displaySlugStatus.state === "error") {
+      setMsg({ type: "error", text: displaySlugStatus.message });
       return;
     }
     startTransition(async () => {
@@ -183,19 +191,19 @@ export function CoachProfileSection(props: {
               maxLength={40}
             />
             <span className="px-3 flex items-center text-sm shrink-0">
-              {slugStatus.state === "checking" && (
+              {displaySlugStatus.state === "checking" && (
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               )}
-              {slugStatus.state === "ok" && <Check className="size-4 text-success" />}
-              {slugStatus.state === "error" && (
+              {displaySlugStatus.state === "ok" && <Check className="size-4 text-success" />}
+              {displaySlugStatus.state === "error" && (
                 <AlertCircle className="size-4 text-destructive" />
               )}
             </span>
           </div>
-          {slugStatus.state === "error" && (
-            <p className="text-xs text-destructive">{slugStatus.message}</p>
+          {displaySlugStatus.state === "error" && (
+            <p className="text-xs text-destructive">{displaySlugStatus.message}</p>
           )}
-          {slug && slugStatus.state !== "error" && (
+          {slug && displaySlugStatus.state !== "error" && (
             <div className="flex items-center justify-between gap-2 mt-2 rounded-md border bg-muted/40 px-3 py-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Globe className="size-3.5 text-muted-foreground shrink-0" />
@@ -219,7 +227,7 @@ export function CoachProfileSection(props: {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSave} disabled={pending || slugStatus.state === "checking"}>
+        <Button onClick={handleSave} disabled={pending || displaySlugStatus.state === "checking"}>
           {pending ? (
             <>
               <Loader2 className="size-4 mr-2 animate-spin" />
