@@ -1,4 +1,5 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
@@ -152,32 +153,82 @@ const defaultExercises = [
   },
 ];
 
-async function main() {
-  console.log("Seeding default exercises...");
+async function seedAdmin() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
+  const name = process.env.ADMIN_NAME?.trim() || "Admin";
 
-  for (const exercise of defaultExercises) {
-    const id = exercise.name.toLowerCase().replace(/\s+/g, "-");
-
-    // Check if exercise exists
-    const existing = await prisma.exercise.findUnique({ where: { id } });
-
-    if (existing) {
-      await prisma.exercise.update({
-        where: { id },
-        data: exercise,
-      });
-    } else {
-      await prisma.exercise.create({
-        data: {
-          id,
-          ...exercise,
-          custom: false,
-        },
-      });
-    }
+  if (!email || !password) {
+    console.log(
+      "  ⚠ ADMIN_EMAIL and ADMIN_PASSWORD not set — skipping admin seed."
+    );
+    console.log(
+      "    Set them in .env and re-run `npm run db:seed` to create the first admin.\n"
+    );
+    return;
+  }
+  if (password.length < 12) {
+    console.error(
+      "  ✗ ADMIN_PASSWORD must be at least 12 characters. Refusing to seed weak admin."
+    );
+    process.exit(1);
   }
 
-  console.log("Seeding complete!");
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    if (existing.role !== "ADMIN") {
+      console.log(
+        `  ⚠ A user with email ${email} already exists as ${existing.role}. Skipping.`
+      );
+    } else {
+      console.log(`  → Admin already exists: ${email}`);
+    }
+    return;
+  }
+
+  const hashed = await bcrypt.hash(password, 12);
+  await prisma.user.create({
+    data: {
+      email,
+      name,
+      password: hashed,
+      role: "ADMIN",
+      active: true,
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`  ✓ Created admin user: ${email}`);
+}
+
+async function seedExercises() {
+  let created = 0;
+  let updated = 0;
+  for (const exercise of defaultExercises) {
+    const id = exercise.name.toLowerCase().replace(/\s+/g, "-");
+    const existing = await prisma.exercise.findUnique({ where: { id } });
+    if (existing) {
+      await prisma.exercise.update({ where: { id }, data: exercise });
+      updated++;
+    } else {
+      await prisma.exercise.create({
+        data: { id, ...exercise, custom: false },
+      });
+      created++;
+    }
+  }
+  console.log(`  ✓ Exercises: ${created} created, ${updated} updated`);
+}
+
+async function main() {
+  console.log("\nSeeding Praevio database...");
+
+  console.log("\n[1/2] Admin user");
+  await seedAdmin();
+
+  console.log("\n[2/2] Default exercise library");
+  await seedExercises();
+
+  console.log("\nSeeding complete.\n");
 }
 
 main()
