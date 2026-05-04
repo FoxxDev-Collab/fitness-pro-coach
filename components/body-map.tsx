@@ -10,25 +10,37 @@ type BodyMapProps = {
   size?: "sm" | "md" | "lg";
 };
 
-// Resolve a CSS variable to its computed color value
+// The CSS variables in app/globals.css are stored as full color expressions
+// (e.g. `oklch(0.92 0.21 121)`), so we use the value verbatim — wrapping it
+// again would produce invalid `oklch(oklch(...))` and the SVG would fall back
+// to its default fill.
+function normalizeColor(raw: string, fallback: string): string {
+  const v = raw.trim();
+  if (!v) return fallback;
+  // Already a complete color expression — pass through.
+  if (/^(oklch|oklab|rgb|rgba|hsl|hsla|color|#)/i.test(v)) return v;
+  // Bare components (e.g. "0.92 0.21 121") — assume oklch and wrap.
+  return `oklch(${v})`;
+}
+
 function useCssColor(cssVar: string, fallback: string): string {
   const [color, setColor] = useState(() => {
     if (typeof window === "undefined") return fallback;
-    const computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-    return computed ? `oklch(${computed})` : fallback;
+    const computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar);
+    return normalizeColor(computed, fallback);
   });
-  // Re-resolve on theme change
+  // Re-resolve on theme change (the .dark class is toggled on <html>)
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const root = document.documentElement;
-      const computed = getComputedStyle(root).getPropertyValue(cssVar).trim();
-      if (computed) {
-        setColor(`oklch(${computed})`);
-      }
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    const root = document.documentElement;
+    const resolve = () => {
+      const computed = getComputedStyle(root).getPropertyValue(cssVar);
+      setColor(normalizeColor(computed, fallback));
+    };
+    resolve();
+    const observer = new MutationObserver(resolve);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
-  }, [cssVar]);
+  }, [cssVar, fallback]);
   return color;
 }
 
