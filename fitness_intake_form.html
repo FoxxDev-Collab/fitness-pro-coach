@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Praevio — Client Intake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* praevio palette — mirrors app/globals.css */
+    --bg:           #FAFAFA;
+    --surface:      #FFFFFF;
+    --surface-2:    #F4F4F5;
+    --ink:          #0A0A0B;
+    --ink-mid:      #27272A;
+    --ink-muted:    #71717A;
+    --border:       #E4E4E7;
+    --border-strong:#D4D4D8;
+
+    --lime:         oklch(0.9234 0.2168 121.1171);   /* primary */
+    --lime-ink:     #0A0A0B;                          /* primary-foreground */
+    --lime-soft:    color-mix(in oklab, var(--lime) 18%, white);
+    --lime-tint:    color-mix(in oklab, var(--lime) 8%, white);
+    --lime-glow:    color-mix(in oklab, var(--lime) 35%, transparent);
+
+    --destructive:  #DC2626;
+    --warning:      #D97706;
+
+    --radius:       6px;
+    --radius-sm:    4px;
+    --radius-lg:    10px;
+    --radius-pill:  999px;
+
+    --tracking-tight: -0.04em;
+    --tracking-wide:  0.08em;
+
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.06), 0 0 0 1px hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.08), 0 1px 2px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 12px 32px hsl(0 0% 0% / 0.10), 0 2px 4px hsl(0 0% 0% / 0.06);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.55;
+    letter-spacing: var(--tracking-tight);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ─── HEADER ─── */
+  .site-header {
+    background: var(--ink);
+    color: white;
+    padding: 2.25rem 1.5rem 2.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--ink-mid);
+  }
+
+  .site-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 70% at 80% 30%, var(--lime-glow) 0%, transparent 65%),
+                radial-gradient(ellipse 50% 60% at 15% 90%, color-mix(in oklab, var(--lime) 18%, transparent) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .brand-mark svg {
+    width: 26px; height: 26px;
+    color: var(--lime);
+    stroke-width: 2;
+  }
+
+  .brand-mark .wordmark {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: white;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: color-mix(in oklab, var(--lime) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--lime) 35%, transparent);
+    color: var(--lime);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 1rem;
+    position: relative;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+  }
+
+  .header-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--lime);
+    box-shadow: 0 0 8px var(--lime);
+  }
+
+  .site-header h1 {
+    font-size: clamp(1.85rem, 4.5vw, 2.5rem);
+    color: white;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.045em;
+    margin-bottom: 0.6rem;
+    position: relative;
+  }
+
+  .site-header h1 .accent { color: var(--lime); }
+
+  .site-header p {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.92rem;
+    font-weight: 400;
+    max-width: 460px;
+    margin: 0 auto;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+
+  /* ─── PROGRESS ─── */
+  .progress-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.85rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    backdrop-filter: blur(8px);
+    background: color-mix(in oklab, var(--surface) 92%, transparent);
+  }
+
+  .progress-label {
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    font-weight: 500;
+    min-width: 56px;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+  }
+
+  .progress-bar-bg {
+    flex: 1;
+    height: 3px;
+    background: var(--surface-2);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--lime);
+    border-radius: var(--radius-pill);
+    width: 0%;
+    transition: width 0.4s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 12px var(--lime-glow);
+  }
+
+  .progress-pct {
+    font-size: 11.5px;
+    color: var(--ink);
+    font-weight: 600;
+    min-width: 36px;
+    text-align: right;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+  }
+
+  /* ─── MAIN LAYOUT ─── */
+  .form-outer {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 1.75rem 1rem 4rem;
+  }
+
+  /* ─── SECTION CARDS ─── */
+  .form-section {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+
+  .form-section:focus-within {
+    border-color: var(--ink);
+    box-shadow: var(--shadow-md);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1.1rem 1.4rem;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.18s, background 0.18s;
+  }
+
+  .section-header:hover { background: var(--surface-2); }
+
+  .section-header.open {
+    border-bottom-color: var(--border);
+    background: var(--surface);
+  }
+
+  .section-num {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    font-size: 12.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+    transition: all 0.2s;
+  }
+
+  .section-num.done {
+    background: var(--lime);
+    color: var(--lime-ink);
+    border-color: var(--lime);
+    box-shadow: 0 0 0 3px var(--lime-tint);
+  }
+
+  .section-num.done::before {
+    content: '';
+    width: 11px; height: 11px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center / contain;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center / contain;
+  }
+
+  .section-title-text { flex: 1; min-width: 0; }
+
+  .section-title-text strong {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .section-title-text span {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .section-chevron {
+    color: var(--ink-muted);
+    width: 16px; height: 16px;
+    transition: transform 0.25s;
+    flex-shrink: 0;
+  }
+
+  .section-chevron.open { transform: rotate(180deg); }
+
+  .section-body {
+    display: none;
+    padding: 1.4rem;
+  }
+
+  .section-body.open { display: block; }
+
+  /* ─── FIELDS ─── */
+  .field-group { margin-bottom: 1.2rem; }
+  .field-group:last-child { margin-bottom: 0; }
+
+  .field-row {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  @media (max-width: 560px) {
+    .field-row, .field-row.three { grid-template-columns: 1fr; }
+  }
+
+  label.field-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  label.field-label .req { color: var(--destructive); margin-left: 2px; font-weight: 600; }
+
+  .hint-text {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+    letter-spacing: -0.01em;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--ink-muted);
+    opacity: 0.7;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px var(--lime-tint);
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 7L11 1' stroke='%2371717A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 34px;
+    cursor: pointer;
+  }
+
+  textarea { resize: vertical; min-height: 78px; line-height: 1.55; }
+
+  /* ─── CHECKBOX GRID ─── */
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 480px) {
+    .check-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 11px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--ink-mid);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    transition: all 0.13s;
+    user-select: none;
+  }
+
+  .check-item:hover { border-color: var(--ink-mid); background: var(--surface-2); }
+
+  .check-item input[type="checkbox"] {
+    width: 14px; height: 14px;
+    flex-shrink: 0;
+    accent-color: var(--ink);
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .check-item.checked {
+    border-color: var(--ink);
+    background: var(--lime-tint);
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ─── RADIO PILLS ─── */
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .radio-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--ink-mid);
+    letter-spacing: -0.01em;
+    transition: all 0.13s;
+    user-select: none;
+  }
+
+  .radio-pill:hover { border-color: var(--ink-mid); background: var(--surface-2); }
+
+  .radio-pill input { accent-color: var(--ink); width: 13px; height: 13px; cursor: pointer; }
+
+  .radio-pill.checked {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: white;
+    font-weight: 500;
+  }
+
+  .radio-pill.checked input { accent-color: var(--lime); }
+
+  /* ─── SCALE ─── */
+  .scale-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+  .scale-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .scale-btn {
+    width: 40px; height: 40px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    cursor: pointer;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+    transition: all 0.13s;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .scale-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  .scale-btn.active {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: var(--lime-ink);
+    font-weight: 600;
+    box-shadow: 0 0 0 3px var(--lime-tint);
+  }
+
+  .scale-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-muted);
+    padding: 0 2px;
+    letter-spacing: -0.01em;
+  }
+
+  /* ─── SURGERY TABLE ─── */
+  .surgery-table-wrap {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 4px;
+    background: var(--surface);
+  }
+
+  .surgery-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  .surgery-table th {
+    background: var(--ink);
+    color: white;
+    font-weight: 500;
+    font-size: 10.5px;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    padding: 9px 12px;
+    text-align: left;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+  }
+
+  .surgery-table td {
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .surgery-table tr:last-child td { border-bottom: none; }
+
+  .surgery-table input, .surgery-table select {
+    padding: 7px 10px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .add-row-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 7px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    margin-top: 10px;
+    letter-spacing: -0.01em;
+    transition: all 0.13s;
+  }
+
+  .add-row-btn:hover {
+    background: var(--lime-tint);
+    border-color: var(--ink);
+    border-style: solid;
+  }
+
+  /* ─── REVEAL ─── */
+  .reveal-target { display: none; margin-top: 12px; }
+  .reveal-target.visible { display: block; }
+
+  /* ─── INFO BOX ─── */
+  .info-box {
+    background: var(--lime-tint);
+    border-left: 2px solid var(--lime);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 11px 14px;
+    font-size: 12.5px;
+    color: var(--ink-mid);
+    margin-bottom: 1.2rem;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+  }
+
+  /* ─── DISCLAIMER ─── */
+  .disclaimer-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    font-size: 12.5px;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    margin-bottom: 1.2rem;
+    letter-spacing: -0.01em;
+  }
+
+  .disclaimer-box h4 {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 5px;
+    margin-top: 14px;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    font-family: 'Geist Mono', ui-monospace, monospace;
+  }
+
+  .disclaimer-box h4:first-child { margin-top: 0; }
+
+  /* ─── SIGNATURE ─── */
+  .sig-area {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    padding: 10px;
+    margin-top: 4px;
+  }
+
+  .sig-canvas-wrap {
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  canvas#sigCanvas {
+    display: block;
+    width: 100%;
+    height: 120px;
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .sig-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+  }
+
+  .sig-clear {
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    background: none;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: -0.01em;
+    transition: all 0.13s;
+  }
+
+  .sig-clear:hover { color: var(--destructive); border-color: var(--destructive); }
+
+  /* ─── SUBMIT AREA ─── */
+  .submit-area {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    margin-top: 1rem;
+  }
+
+  .submit-area p {
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    margin-bottom: 1.25rem;
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: var(--lime);
+    color: var(--lime-ink);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 30px;
+    border-radius: var(--radius);
+    border: 1px solid var(--lime);
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: -0.02em;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--lime) 88%, black);
+    border-color: color-mix(in oklab, var(--lime) 88%, black);
+    box-shadow: var(--shadow-md), 0 0 0 4px var(--lime-tint);
+  }
+
+  .btn-submit:active:not(:disabled) { transform: translateY(1px); }
+
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .btn-submit svg { width: 16px; height: 16px; stroke-width: 2.25; }
+
+  /* ─── FOOTER ─── */
+  .form-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+  }
+
+  .form-footer .compass {
+    display: inline-block;
+    width: 11px; height: 11px;
+    vertical-align: -2px;
+    margin-right: 4px;
+    color: var(--ink-mid);
+  }
+
+  /* ─── SUCCESS ─── */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+
+  .success-screen.show { display: block; }
+
+  .success-icon {
+    width: 64px; height: 64px;
+    background: var(--lime);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--lime-ink);
+    box-shadow: 0 0 0 8px var(--lime-tint);
+  }
+
+  .success-icon svg { width: 28px; height: 28px; stroke-width: 2.5; }
+
+  .success-screen h2 {
+    font-size: 1.85rem;
+    color: var(--ink);
+    margin-bottom: 0.7rem;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
+
+  .success-screen p {
+    color: var(--ink-muted);
+    max-width: 380px;
+    margin: 0 auto 1.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: -0.01em;
+    transition: all 0.13s;
+  }
+
+  .btn-download:hover { background: var(--surface-2); border-color: var(--ink); }
+
+  .form-main { transition: opacity 0.3s; }
+  .form-main.hidden { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand-mark">
+    <!-- Compass icon, mirrors lucide-react Compass used in app/(auth)/layout.tsx -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+    </svg>
+    <span class="wordmark">Praevio</span>
+  </div>
+  <div class="header-badge">Confidential intake</div>
+  <h1>Lead the way<br><span class="accent">— starts here.</span></h1>
+  <p>Tell us about your goals, history, and what you're working with. About 5–8 minutes.</p>
+</header>
+
+<div class="progress-wrap">
+  <span class="progress-label" id="progressLabel">0 / 9</span>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+  <span class="progress-pct" id="progressPct">0%</span>
+</div>
+
+<div class="form-outer">
+
+  <div class="form-main" id="formMain">
+  <form id="intakeForm" novalidate>
+
+    <!-- 1. PERSONAL -->
+    <div class="form-section" id="sec1">
+      <div class="section-header open" onclick="toggleSection('sec1')">
+        <div class="section-num" id="num1">1</div>
+        <div class="section-title-text">
+          <strong>Personal Information</strong>
+          <span>Your basic details</span>
+        </div>
+        <svg class="section-chevron open" id="chev1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body open" id="body1">
+        <div class="field-row three" style="margin-bottom:1rem;">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">First name <span class="req">*</span></label>
+            <input type="text" name="firstName" placeholder="Jane" required>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Last name <span class="req">*</span></label>
+            <input type="text" name="lastName" placeholder="Smith" required>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Date of birth</label>
+            <input type="date" name="dob">
+          </div>
+        </div>
+        <div class="field-row" style="margin-bottom:1rem;">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Phone number</label>
+            <input type="tel" name="phone" placeholder="(555) 000-0000">
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Email address <span class="req">*</span></label>
+            <input type="email" name="email" placeholder="jane@email.com" required>
+          </div>
+        </div>
+        <div class="field-row" style="margin-bottom:1rem;">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Height</label>
+            <input type="text" name="height" placeholder='e.g. 5&apos;6"'>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Weight (lbs)</label>
+            <input type="number" name="weight" placeholder="145">
+          </div>
+        </div>
+        <div class="field-row" style="margin-bottom:1rem;">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Occupation</label>
+            <input type="text" name="occupation" placeholder="e.g. nurse, office worker">
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Sex assigned at birth</label>
+            <select name="sex">
+              <option value="">Select…</option>
+              <option>Male</option><option>Female</option><option>Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">How did you hear about us?</label>
+          <select name="referral">
+            <option value="">Select…</option>
+            <option>Referral from a friend</option><option>Instagram</option>
+            <option>Google / search</option><option>Facebook</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. MEDICAL -->
+    <div class="form-section" id="sec2">
+      <div class="section-header" onclick="toggleSection('sec2')">
+        <div class="section-num" id="num2">2</div>
+        <div class="section-title-text">
+          <strong>Medical History</strong>
+          <span>Conditions, medications &amp; physician info</span>
+        </div>
+        <svg class="section-chevron" id="chev2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body2">
+        <div class="info-box">Please answer all questions honestly. This information is strictly confidential and used only to design a safe, effective program for you.</div>
+        <div class="field-group">
+          <label class="field-label">Current or past medical conditions (select all that apply)</label>
+          <div class="check-grid" id="conditions">
+            <label class="check-item"><input type="checkbox" name="conditions" value="Hypertension"> Hypertension</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Type 1 diabetes"> Type 1 diabetes</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Type 2 diabetes"> Type 2 diabetes</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Heart disease"> Heart disease</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Asthma / COPD"> Asthma / COPD</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Osteoporosis"> Osteoporosis</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Arthritis"> Arthritis</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Thyroid disorder"> Thyroid disorder</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="PCOS"> PCOS</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Anxiety / depression"> Anxiety / depression</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Autoimmune disorder"> Autoimmune disorder</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Cancer history"> Cancer (history)</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Diastasis recti"> Diastasis recti</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="Herniated disc"> Herniated disc</label>
+            <label class="check-item"><input type="checkbox" name="conditions" value="None"> None of the above</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Other conditions not listed above</label>
+          <input type="text" name="conditionsOther" placeholder="Describe if applicable">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Are you currently taking medications that may affect exercise?</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="meds" value="No"> No</label>
+            <label class="radio-pill"><input type="radio" name="meds" value="Yes"> Yes — list below</label>
+          </div>
+          <div class="reveal-target" id="medsReveal">
+            <textarea name="medsList" placeholder="Medication name, dosage…"></textarea>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Pregnancy / postpartum status</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="preg" value="No"> No</label>
+            <label class="radio-pill"><input type="radio" name="preg" value="Currently pregnant"> Currently pregnant</label>
+            <label class="radio-pill"><input type="radio" name="preg" value="Postpartum < 12 mo"> Postpartum &lt;12 mo</label>
+            <label class="radio-pill"><input type="radio" name="preg" value="N/A"> N/A</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Has your doctor placed any exercise restrictions?</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="drRestrict" value="No"> No</label>
+            <label class="radio-pill"><input type="radio" name="drRestrict" value="Yes"> Yes — describe below</label>
+          </div>
+          <div class="reveal-target" id="drRestrictReveal">
+            <textarea name="drRestrictDetail" placeholder="Describe any restrictions…"></textarea>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Physician / provider name</label>
+            <input type="text" name="drName" placeholder="Dr. Smith">
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Provider phone / clinic</label>
+            <input type="tel" name="drPhone" placeholder="(555) 000-0000">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. SURGERY -->
+    <div class="form-section" id="sec3">
+      <div class="section-header" onclick="toggleSection('sec3')">
+        <div class="section-num" id="num3">3</div>
+        <div class="section-title-text">
+          <strong>Surgery &amp; Injury History</strong>
+          <span>Past surgeries, injuries, chronic pain</span>
+        </div>
+        <svg class="section-chevron" id="chev3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body3">
+        <div class="field-group">
+          <label class="field-label">Do you have any significant surgeries or injuries to disclose?</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="hasSurgery" value="No"> No</label>
+            <label class="radio-pill"><input type="radio" name="hasSurgery" value="Yes"> Yes — complete the table below</label>
+          </div>
+          <div class="reveal-target" id="surgeryReveal">
+            <div class="surgery-table-wrap" style="margin-top:12px;">
+              <table class="surgery-table">
+                <thead>
+                  <tr>
+                    <th style="width:45%">Surgery / Injury</th>
+                    <th style="width:18%">Year</th>
+                    <th style="width:20%">Side</th>
+                    <th style="width:17%">Active?</th>
+                  </tr>
+                </thead>
+                <tbody id="surgeryTbody">
+                  <tr>
+                    <td><input type="text" name="surg_desc[]" placeholder="e.g. ACL reconstruction" style="width:100%"></td>
+                    <td><input type="number" name="surg_year[]" placeholder="2019" min="1950" max="2030" style="width:100%"></td>
+                    <td>
+                      <select name="surg_side[]" style="width:100%">
+                        <option value="">—</option><option>Left</option><option>Right</option><option>Both</option><option>N/A</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select name="surg_active[]" style="width:100%">
+                        <option value="">—</option><option>Yes</option><option>No</option>
+                      </select>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="add-row-btn" onclick="addSurgeryRow()">+ Add another</button>
+            <div class="field-group" style="margin-top:14px;">
+              <label class="field-label">Describe any lingering symptoms or limitations</label>
+              <textarea name="surgeryNotes" placeholder="Pain, range-of-motion issues, compensations…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Do you experience any chronic pain?</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="chronicPain" value="No"> No</label>
+            <label class="radio-pill"><input type="radio" name="chronicPain" value="Yes"> Yes</label>
+          </div>
+          <div class="reveal-target" id="painReveal">
+            <textarea name="painDetail" placeholder="Location, severity (1–10), duration…" style="margin-top:10px;"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. LIMITATIONS -->
+    <div class="form-section" id="sec4">
+      <div class="section-header" onclick="toggleSection('sec4')">
+        <div class="section-num" id="num4">4</div>
+        <div class="section-title-text">
+          <strong>Physical Limitations</strong>
+          <span>Pain areas, restricted movements, fitness level</span>
+        </div>
+        <svg class="section-chevron" id="chev4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body4">
+        <div class="field-group">
+          <label class="field-label">Areas of pain, discomfort, or restriction (select all that apply)</label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="painArea" value="Neck / cervical"> Neck / cervical</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Shoulder (left)"> Shoulder (left)</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Shoulder (right)"> Shoulder (right)</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Upper back"> Upper back</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Lower back / lumbar"> Lower back / lumbar</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Hip (left)"> Hip (left)</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Hip (right)"> Hip (right)</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Knee (left)"> Knee (left)</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Knee (right)"> Knee (right)</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Ankle / foot"> Ankle / foot</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Wrist / elbow"> Wrist / elbow</label>
+            <label class="check-item"><input type="checkbox" name="painArea" value="Core / abdomen"> Core / abdomen</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Movements or exercises you have been told to avoid</label>
+          <textarea name="avoidMoves" placeholder="e.g. no overhead pressing, avoid high-impact, no deep squatting…"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Do you have any pelvic floor concerns? (leakage, prolapse, pelvic pain)</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="pelvicFloor" value="No"> No</label>
+            <label class="radio-pill"><input type="radio" name="pelvicFloor" value="Yes"> Yes</label>
+            <label class="radio-pill"><input type="radio" name="pelvicFloor" value="Unsure"> Unsure</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Current activity / fitness level</label>
+          <select name="fitnessLevel">
+            <option value="">Select…</option>
+            <option>Sedentary (little to no exercise)</option>
+            <option>Lightly active (1–2 days/week)</option>
+            <option>Moderately active (3–4 days/week)</option>
+            <option>Very active (5+ days/week)</option>
+            <option>Competitive athlete</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Additional physical considerations your trainer should know</label>
+          <textarea name="physicalNotes" placeholder="Fatigue, hormonal factors, sleep conditions, etc."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. GOALS -->
+    <div class="form-section" id="sec5">
+      <div class="section-header" onclick="toggleSection('sec5')">
+        <div class="section-num" id="num5">5</div>
+        <div class="section-title-text">
+          <strong>Goals &amp; Motivation</strong>
+          <span>What you're working toward</span>
+        </div>
+        <svg class="section-chevron" id="chev5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body5">
+        <div class="field-group">
+          <label class="field-label">Primary goal (select up to 2)</label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="goals" value="Fat loss"> Fat loss</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Muscle building"> Muscle building</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Strength gains"> Strength gains</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Endurance / cardio"> Endurance / cardio</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Body recomposition"> Body recomposition</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Post-rehab return"> Post-rehab return</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Athletic performance"> Athletic performance</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Posture & mobility"> Posture &amp; mobility</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="General health"> General health</label>
+            <label class="check-item"><input type="checkbox" name="goals" value="Postpartum recovery"> Postpartum recovery</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Describe your goal in your own words — what does success look like in 12 weeks?</label>
+          <textarea name="goalDesc" placeholder="Be as specific as you like…"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">How motivated are you right now?</label>
+          <div class="scale-wrap">
+            <div class="scale-buttons" id="motivationScale"></div>
+            <div class="scale-labels"><span>Not at all</span><span>Extremely motivated</span></div>
+          </div>
+          <input type="hidden" name="motivation" id="motivationVal">
+        </div>
+        <div class="field-row">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Days per week you can train</label>
+            <select name="daysPerWeek">
+              <option value="">Select…</option>
+              <option>2 days</option><option>3 days</option><option>4 days</option>
+              <option>5 days</option><option>6 days</option>
+            </select>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Preferred session length</label>
+            <select name="sessionLength">
+              <option value="">Select…</option>
+              <option>30 minutes</option><option>45 minutes</option>
+              <option>60 minutes</option><option>75+ minutes</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-top:1rem;">
+          <label class="field-label">Preferred training style (select all that apply)</label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="Strength / weightlifting"> Strength / weightlifting</label>
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="HIIT"> HIIT</label>
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="Steady-state cardio"> Steady-state cardio</label>
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="Circuit training"> Circuit training</label>
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="Bodyweight / calisthenics"> Bodyweight / calisthenics</label>
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="Functional movement"> Functional movement</label>
+            <label class="check-item"><input type="checkbox" name="trainStyle" value="No preference"> No preference</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">What has held you back from reaching your goals before?</label>
+          <textarea name="barriers" placeholder="Time, injury, motivation, lack of structure, stress…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. EQUIPMENT -->
+    <div class="form-section" id="sec6">
+      <div class="section-header" onclick="toggleSection('sec6')">
+        <div class="section-num" id="num6">6</div>
+        <div class="section-title-text">
+          <strong>Equipment &amp; Environment</strong>
+          <span>Where and what you have to train with</span>
+        </div>
+        <svg class="section-chevron" id="chev6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body6">
+        <div class="field-group">
+          <label class="field-label">Where will you primarily train?</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="trainLocation" value="Home"> Home</label>
+            <label class="radio-pill"><input type="radio" name="trainLocation" value="Commercial gym"> Commercial gym</label>
+            <label class="radio-pill"><input type="radio" name="trainLocation" value="Both"> Both</label>
+            <label class="radio-pill"><input type="radio" name="trainLocation" value="Outdoors"> Outdoors / other</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Equipment available (select all that apply)</label>
+          <div class="check-grid">
+            <label class="check-item"><input type="checkbox" name="equipment" value="Barbell & plates"> Barbell &amp; plates</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Dumbbells"> Dumbbells</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Kettlebells"> Kettlebells</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Pull-up bar"> Pull-up bar</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Resistance bands"> Resistance bands</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Cable machine"> Cable machine</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Squat rack"> Squat rack</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Smith machine"> Smith machine</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Bench"> Bench</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Treadmill"> Treadmill</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Stationary bike"> Stationary bike</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Rowing machine"> Rowing machine</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Jump rope"> Jump rope</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="TRX / suspension"> TRX / suspension</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Foam roller"> Foam roller</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="Yoga mat only"> Yoga mat only</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="No equipment"> No equipment</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Other equipment or space constraints at home</label>
+          <textarea name="equipmentNotes" placeholder="Low ceiling, small room, no outdoor access, etc."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. NUTRITION -->
+    <div class="form-section" id="sec7">
+      <div class="section-header" onclick="toggleSection('sec7')">
+        <div class="section-num" id="num7">7</div>
+        <div class="section-title-text">
+          <strong>Nutrition &amp; Lifestyle</strong>
+          <span>Sleep, diet, stress, supplements</span>
+        </div>
+        <svg class="section-chevron" id="chev7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body7">
+        <div class="field-row">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Do you track calories or macros?</label>
+            <select name="tracking">
+              <option value="">Select…</option>
+              <option>Yes, consistently</option><option>Sometimes</option>
+              <option>No</option><option>Interested in starting</option>
+            </select>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Average hours of sleep per night</label>
+            <select name="sleep">
+              <option value="">Select…</option>
+              <option>Less than 5 hours</option><option>5–6 hours</option>
+              <option>7–8 hours</option><option>More than 8 hours</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-top:1rem;">
+          <label class="field-label">Dietary restrictions, allergies, or approach</label>
+          <textarea name="diet" placeholder="Vegan, gluten-free, intermittent fasting, allergies…"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Average stress level</label>
+          <div class="scale-wrap">
+            <div class="scale-buttons" id="stressScale"></div>
+            <div class="scale-labels"><span>Very low</span><span>Extremely high</span></div>
+          </div>
+          <input type="hidden" name="stress" id="stressVal">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Current supplements</label>
+          <textarea name="supplements" placeholder="Protein powder, creatine, vitamins, pre-workout…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. ADDITIONAL -->
+    <div class="form-section" id="sec8">
+      <div class="section-header" onclick="toggleSection('sec8')">
+        <div class="section-num" id="num8">8</div>
+        <div class="section-title-text">
+          <strong>Additional Notes</strong>
+          <span>Anything else your trainer should know</span>
+        </div>
+        <svg class="section-chevron" id="chev8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body8">
+        <div class="field-group">
+          <label class="field-label">Is there anything else you'd like your trainer to know?</label>
+          <textarea name="additionalNotes" placeholder="Upcoming travel, life events, past trainer experiences, personal preferences…" style="min-height:100px;"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">How would you like to receive your programming?</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="delivery" value="Praevio app"> Praevio app</label>
+            <label class="radio-pill"><input type="radio" name="delivery" value="PDF / spreadsheet"> PDF / spreadsheet</label>
+            <label class="radio-pill"><input type="radio" name="delivery" value="Email"> Email</label>
+            <label class="radio-pill"><input type="radio" name="delivery" value="No preference"> No preference</label>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Photo / testimonial consent (optional)</label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="photoConsent" value="Yes"> Yes, I consent</label>
+            <label class="radio-pill"><input type="radio" name="photoConsent" value="No"> No, I do not consent</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. LIABILITY -->
+    <div class="form-section" id="sec9">
+      <div class="section-header" onclick="toggleSection('sec9')">
+        <div class="section-num" id="num9">9</div>
+        <div class="section-title-text">
+          <strong>Liability Waiver &amp; Consent</strong>
+          <span>Please read carefully and sign</span>
+        </div>
+        <svg class="section-chevron" id="chev9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" id="body9">
+        <div class="disclaimer-box">
+          <h4>Assumption of Risk</h4>
+          I voluntarily choose to participate in a personal training program. I acknowledge that physical exercise involves inherent risks including muscular strains, joint injuries, cardiovascular events, and other physical conditions. I understand these risks exist even under professional supervision.
+
+          <h4>Medical Clearance</h4>
+          I confirm I have been advised to consult with a licensed physician prior to beginning any exercise program, and that I have either done so or chosen to waive this recommendation. The medical information provided in this form is complete and accurate to the best of my knowledge. I agree to promptly inform my trainer of any changes in my health status.
+
+          <h4>Release of Liability</h4>
+          In consideration of being allowed to participate in personal training services, I hereby release, waive, discharge, and covenant not to sue the trainer, their business entity, agents, employees, and representatives ("Released Parties") from any and all liability, claims, demands, or causes of action arising out of or related to any loss, damage, injury, or death that may be sustained by me while participating in any activities or program recommendations.
+
+          <h4>Indemnification</h4>
+          I agree to indemnify and hold harmless the Released Parties from any loss, liability, damage, or costs — including court costs and attorney's fees — that may incur due to my participation in the personal training program, whether caused by negligence or otherwise.
+
+          <h4>Stop-Exercise Clause</h4>
+          I understand I am responsible for communicating any pain, dizziness, shortness of breath, or adverse sensation during sessions. I agree to stop exercise immediately and notify my trainer if I experience any such symptoms. The trainer reserves the right to modify or halt any exercise if continuation poses a safety risk.
+
+          <h4>Acknowledgment</h4>
+          I have read this waiver carefully and understand its content. I am aware this is a release of liability and a contract, and I sign it of my own free will. I confirm I am 18 years of age or older, or that my parent/guardian has consented on my behalf.
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">I have read and agree to the above waiver <span class="req">*</span></label>
+          <div class="radio-group">
+            <label class="radio-pill"><input type="radio" name="waiverAgree" value="Yes" required> Yes, I agree</label>
+            <label class="radio-pill"><input type="radio" name="waiverAgree" value="No"> No — I do not agree</label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Digital signature — sign below with your finger or mouse <span class="req">*</span></label>
+          <div class="sig-area">
+            <div class="sig-canvas-wrap">
+              <canvas id="sigCanvas" width="720" height="120"></canvas>
+            </div>
+            <div class="sig-controls">
+              <button type="button" class="sig-clear" onclick="clearSig()">Clear signature</button>
+            </div>
+          </div>
+          <p class="hint-text">By signing above you agree this digital signature has the same legal effect as a handwritten signature.</p>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Printed full name <span class="req">*</span></label>
+            <input type="text" name="printedName" placeholder="Jane Smith" required>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Today's date <span class="req">*</span></label>
+            <input type="date" name="signDate" required>
+          </div>
+        </div>
+        <div class="field-group" style="margin-top:1rem;">
+          <label class="field-label">Parent / guardian signature (if client is under 18)</label>
+          <input type="text" name="guardianName" placeholder="Guardian printed name, if applicable">
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-area">
+      <p>All fields marked <strong style="color:var(--destructive)">*</strong> are required. Your information is kept strictly confidential.</p>
+      <button type="submit" class="btn-submit">
+        Submit intake
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+
+    <div class="form-footer">
+      <svg class="compass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+      Powered by Praevio · Lead the way
+    </div>
+
+  </form>
+  </div><!-- /form-main -->
+
+  <!-- SUCCESS -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2>Intake submitted</h2>
+    <p>Thanks — your trainer will review everything before your first session and reach out shortly.</p>
+    <a href="#" class="btn-download" id="downloadBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download your copy
+    </a>
+  </div>
+
+</div><!-- /form-outer -->
+
+<script>
+// ─── SECTION TOGGLE ───
+function toggleSection(id) {
+  const body = document.getElementById('body' + id.replace('sec',''));
+  const chev = document.getElementById('chev' + id.replace('sec',''));
+  const hdr = document.querySelector('#' + id + ' .section-header');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+  hdr.classList.toggle('open', !isOpen);
+}
+
+document.querySelector('#sec1 .section-header').classList.add('open');
+
+// ─── RADIO PILLS / CHECKBOXES STYLING ───
+document.querySelectorAll('.radio-pill input').forEach(r => {
+  r.addEventListener('change', () => {
+    document.querySelectorAll('.radio-pill input[name="' + r.name + '"]').forEach(x => {
+      x.closest('.radio-pill').classList.toggle('checked', x.checked);
+    });
+    handleReveal(r);
+  });
+});
+
+document.querySelectorAll('.check-item input').forEach(c => {
+  c.addEventListener('change', () => {
+    c.closest('.check-item').classList.toggle('checked', c.checked);
+    updateProgress();
+  });
+});
+
+// ─── CONDITIONAL REVEALS ───
+const reveals = {
+  meds: { val: 'Yes', target: 'medsReveal' },
+  drRestrict: { val: 'Yes', target: 'drRestrictReveal' },
+  hasSurgery: { val: 'Yes', target: 'surgeryReveal' },
+  chronicPain: { val: 'Yes', target: 'painReveal' }
+};
+
+function handleReveal(radio) {
+  const cfg = reveals[radio.name];
+  if (!cfg) return;
+  const target = document.getElementById(cfg.target);
+  if (!target) return;
+  target.classList.toggle('visible', radio.value === cfg.val);
+}
+
+// ─── SCALE BUTTONS ───
+function buildScale(containerId, hiddenId) {
+  const row = document.getElementById(containerId);
+  const hidden = document.getElementById(hiddenId);
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'scale-btn';
+    btn.textContent = i;
+    btn.dataset.val = i;
+    btn.addEventListener('click', function() {
+      row.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      hidden.value = this.dataset.val;
+      updateProgress();
+    });
+    row.appendChild(btn);
+  }
+}
+buildScale('motivationScale', 'motivationVal');
+buildScale('stressScale', 'stressVal');
+
+// ─── SURGERY TABLE ───
+function addSurgeryRow() {
+  const tbody = document.getElementById('surgeryTbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" name="surg_desc[]" placeholder="e.g. rotator cuff repair" style="width:100%"></td>
+    <td><input type="number" name="surg_year[]" placeholder="2021" min="1950" max="2030" style="width:100%"></td>
+    <td><select name="surg_side[]" style="width:100%"><option value="">—</option><option>Left</option><option>Right</option><option>Both</option><option>N/A</option></select></td>
+    <td><select name="surg_active[]" style="width:100%"><option value="">—</option><option>Yes</option><option>No</option></select></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// ─── SIGNATURE CANVAS ───
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+ctx.strokeStyle = '#0A0A0B';
+ctx.lineWidth = 2;
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+let drawing = false, hasSig = false;
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+}
+
+canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasSig = true; });
+canvas.addEventListener('mouseup', () => { drawing = false; });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasSig = true; }, { passive: false });
+canvas.addEventListener('touchend', () => { drawing = false; });
+
+function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); hasSig = false; }
+
+// ─── PROGRESS ───
+const SECTION_IDS = ['sec1','sec2','sec3','sec4','sec5','sec6','sec7','sec8','sec9'];
+
+function sectionTouched(id) {
+  const body = document.getElementById('body' + id.replace('sec',''));
+  const inputs = body.querySelectorAll('input, select, textarea');
+  for (const inp of inputs) {
+    if (inp.type === 'checkbox' || inp.type === 'radio') { if (inp.checked) return true; }
+    else if (inp.value && inp.value.trim()) return true;
+  }
+  return false;
+}
+
+function updateProgress() {
+  let done = 0;
+  SECTION_IDS.forEach((id, i) => {
+    const touched = sectionTouched(id);
+    const numEl = document.getElementById('num' + (i+1));
+    if (touched) { numEl.classList.add('done'); numEl.textContent = ''; done++; }
+    else { numEl.classList.remove('done'); numEl.textContent = i+1; }
+  });
+  const pct = Math.round((done / SECTION_IDS.length) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + SECTION_IDS.length;
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+
+document.querySelectorAll('input, select, textarea').forEach(el => {
+  el.addEventListener('change', updateProgress);
+  el.addEventListener('input', updateProgress);
+});
+
+// ─── FORM SUBMIT ───
+document.getElementById('intakeForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const req = this.querySelectorAll('[required]');
+  let ok = true;
+  req.forEach(f => {
+    if (f.type === 'radio') {
+      const group = this.querySelectorAll('[name="' + f.name + '"]');
+      if (![...group].some(r => r.checked)) { ok = false; f.closest('.form-section').querySelector('.section-header').click(); }
+    } else if (!f.value.trim()) {
+      ok = false;
+      f.style.borderColor = 'var(--destructive)';
+      f.closest('.form-section').querySelector('.section-body').classList.add('open');
+    } else { f.style.borderColor = ''; }
+  });
+
+  if (!hasSig) {
+    alert('Please add your digital signature before submitting.');
+    document.getElementById('sec9').querySelector('.section-body').classList.add('open');
+    return;
+  }
+
+  if (!ok) { alert('Please fill in all required fields before submitting.'); return; }
+
+  const raw = new FormData(this);
+  const payload = {};
+  for (const [key, val] of raw.entries()) {
+    if (payload[key]) {
+      payload[key] = payload[key] + ', ' + val;
+    } else {
+      payload[key] = val;
+    }
+  }
+  payload['_signature'] = hasSig ? 'Signed digitally on ' + new Date().toLocaleDateString() : 'Not signed';
+  payload['_submittedAt'] = new Date().toLocaleString();
+
+  const btn = this.querySelector('.btn-submit');
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = 'Sending…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://formspree.io/f/mbdwggzg', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      let summary = 'PRAEVIO — CLIENT INTAKE\n';
+      summary += 'Submitted: ' + new Date().toLocaleString() + '\n';
+      summary += '='.repeat(50) + '\n\n';
+      for (const [key, val] of Object.entries(payload)) {
+        if (val && !key.startsWith('surg_')) summary += key + ': ' + val + '\n';
+      }
+
+      document.getElementById('formMain').classList.add('hidden');
+      setTimeout(() => {
+        document.getElementById('formMain').style.display = 'none';
+        document.getElementById('successScreen').classList.add('show');
+      }, 300);
+
+      document.getElementById('downloadBtn').addEventListener('click', function(ev) {
+        ev.preventDefault();
+        const blob = new Blob([summary], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'praevio_intake_summary.txt'; a.click();
+        URL.revokeObjectURL(url);
+      });
+
+    } else {
+      const data = await res.json();
+      const msg = data.errors ? data.errors.map(e => e.message).join(', ') : 'Submission failed. Please try again.';
+      alert('There was a problem submitting the form: ' + msg);
+      btn.innerHTML = originalHTML;
+      btn.disabled = false;
+    }
+
+  } catch (err) {
+    alert('Network error — please check your connection and try again.');
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

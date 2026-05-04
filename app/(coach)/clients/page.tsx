@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 
 export default async function ClientsPage() {
   const clients = await getClients();
+  // eslint-disable-next-line react-hooks/purity -- server component, runs once per request
+  const now = Date.now();
 
   return (
     <div className="space-y-6">
@@ -45,11 +47,11 @@ export default async function ClientsPage() {
             const totalSessions = allLogs.length;
             const lastSession = allLogs[0]?.date;
             const recentCount = allLogs.filter(
-              (l) => Date.now() - new Date(l.date).getTime() < 7 * 86400000
+              (l) => now - new Date(l.date).getTime() < 7 * 86400000
             ).length;
 
             const daysAgo = lastSession
-              ? Math.round((Date.now() - new Date(lastSession).getTime()) / 86400000)
+              ? Math.round((now - new Date(lastSession).getTime()) / 86400000)
               : null;
             const lastLabel = daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : daysAgo !== null ? `${daysAgo}d ago` : null;
 

@@ -12,14 +12,11 @@ type BodyMapProps = {
 
 // Resolve a CSS variable to its computed color value
 function useCssColor(cssVar: string, fallback: string): string {
-  const [color, setColor] = useState(fallback);
-  useEffect(() => {
-    const root = document.documentElement;
-    const computed = getComputedStyle(root).getPropertyValue(cssVar).trim();
-    if (computed) {
-      setColor(`oklch(${computed})`);
-    }
-  }, [cssVar]);
+  const [color, setColor] = useState(() => {
+    if (typeof window === "undefined") return fallback;
+    const computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+    return computed ? `oklch(${computed})` : fallback;
+  });
   // Re-resolve on theme change
   useEffect(() => {
     const observer = new MutationObserver(() => {

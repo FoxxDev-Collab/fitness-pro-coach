@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Play, Plus, Trash2, Ruler, ChevronLeft, ChevronRight, Pencil, Pin, StickyNote, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { AssignProgramDialog } from "@/components/assign-program-dialog";
@@ -177,8 +176,8 @@ function OverviewTab({
   logs: Log[];
   onSelectWorkout: (a: Assignment) => void;
 }) {
-  const daysSinceCreated = Math.round(
-    (Date.now() - new Date(client.createdAt).getTime()) / 86400000
+  const [daysSinceCreated] = useState(() =>
+    Math.round((Date.now() - new Date(client.createdAt).getTime()) / 86400000)
   );
 
   const stats = [

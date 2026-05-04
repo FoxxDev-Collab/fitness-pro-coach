@@ -54,7 +54,6 @@ export default async function ClientWorkoutPage({
       workoutIndex={workoutIndex}
       clientName={assignment.client.name}
       clientHealth={assignment.client.healthConditions}
-      clientGender={assignment.client.gender ?? null}
       workoutName={workout.name}
       previousData={previousData}
       exercises={workout.exercises.map((e) => ({

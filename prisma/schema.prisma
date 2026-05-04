@@ -27,6 +27,16 @@ model User {
   mfaEnabled    Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  // Coach profile (populated via /welcome wizard)
+  businessName              String?
+  specialty                 String?
+  bio                       String?
+  intakeSlug                String?   @unique
+  timezone                  String?
+  onboardedAt               DateTime?
+  setupChecklistDismissedAt DateTime?
+
   accounts      Account[]
   sessions      AuthSession[]
 
@@ -54,7 +64,7 @@ model User {
 model PasswordResetToken {
   id        String   @id @default(cuid())
   email     String
-  token     String   @unique @default(cuid())
+  token     String   @unique
   expires   DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -65,7 +75,7 @@ model PasswordResetToken {
 model EmailVerificationToken {
   id        String   @id @default(cuid())
   email     String
-  token     String   @unique @default(cuid())
+  token     String   @unique
   expires   DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -115,7 +125,7 @@ model InviteToken {
   email     String
   clientId  String
   coachId   String
-  token     String   @unique @default(cuid())
+  token     String   @unique
   expires   DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())

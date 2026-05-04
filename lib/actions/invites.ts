@@ -2,11 +2,22 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "crypto";
 import { getCoachId } from "@/lib/auth-utils";
 import { sendInviteEmail } from "@/lib/email";
+import { rateLimitByIp, tooManyRequestsMessage } from "@/lib/rate-limit";
+
+const cuidRegex = /^[a-z0-9]{20,40}$/;
 
 export async function inviteClient(clientId: string) {
+  if (typeof clientId !== "string" || !cuidRegex.test(clientId)) {
+    throw new Error("Invalid client id");
+  }
+
   const coachId = await getCoachId();
+
+  const rl = await rateLimitByIp("invite-client", 20, "1 h", coachId);
+  if (!rl.ok) throw new Error(tooManyRequestsMessage(rl.retryAfterSeconds));
 
   const client = await db.client.findFirst({
     where: { id: clientId, coachId },
@@ -32,6 +43,7 @@ export async function inviteClient(clientId: string) {
       email: client.email,
       clientId,
       coachId,
+      token: randomBytes(32).toString("hex"),
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     },
   });
@@ -50,6 +62,10 @@ export async function inviteClient(clientId: string) {
 }
 
 export async function getClientInviteStatus(clientId: string) {
+  if (typeof clientId !== "string" || !cuidRegex.test(clientId)) {
+    return null;
+  }
+
   const coachId = await getCoachId();
 
   const client = await db.client.findFirst({

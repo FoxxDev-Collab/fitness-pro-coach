@@ -70,13 +70,17 @@ export default async function ReportsPage() {
     getAdherenceDashboard(),
   ]);
 
+  // eslint-disable-next-line react-hooks/purity -- server component, runs once per request
+  const now = Date.now();
+  const weekAgo = now - 604800000;
+
   const clientStats = clients.map((c: Client) => {
     const clientAssignments = assignments.filter((a: Assignment) => a.clientId === c.id);
     const clientLogs = logs.filter((l: SessionLog) =>
       clientAssignments.some((a: Assignment) => a.id === l.assignmentId)
     );
     const recentLogs = clientLogs.filter(
-      (l: SessionLog) => new Date(l.date).getTime() > Date.now() - 604800000
+      (l: SessionLog) => new Date(l.date).getTime() > weekAgo
     );
 
     return {
@@ -91,7 +95,7 @@ export default async function ReportsPage() {
   const totalSessions = logs.length;
   const totalMinutes = logs.reduce((sum: number, l: SessionLog) => sum + (l.duration || 0), 0);
   const thisWeekSessions = logs.filter(
-    (l: SessionLog) => new Date(l.date).getTime() > Date.now() - 604800000
+    (l: SessionLog) => new Date(l.date).getTime() > weekAgo
   ).length;
 
   const stats = [

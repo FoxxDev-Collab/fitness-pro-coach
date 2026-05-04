@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, UsersRound, Dumbbell, ClipboardList, BarChart3 } from "lucide-react";
+import { Home, Users, UsersRound, Dumbbell, ClipboardList, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
+  { href: "/", label: "Home", icon: Home, exact: true },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/teams", label: "Teams", icon: UsersRound },
   { href: "/exercises", label: "Exercises", icon: Dumbbell },
@@ -19,8 +20,9 @@ export function NavTabs() {
   return (
     <nav className="max-w-5xl mx-auto flex px-4">
       {tabs.map((tab) => {
-        const isActive =
-          pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const isActive = tab.exact
+          ? pathname === tab.href
+          : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (
           <Link
             key={tab.href}

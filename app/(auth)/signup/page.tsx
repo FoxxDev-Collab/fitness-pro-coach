@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordStrength } from "@/components/password-strength";
-import { signUp, resendVerification as resendVerificationAction } from "@/lib/actions/auth";
+import { signUp } from "@/lib/actions/auth";
 import { Mail, CheckCircle, Loader2 } from "lucide-react";
 
 export default function SignUpPage() {

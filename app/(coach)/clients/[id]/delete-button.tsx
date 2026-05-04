@@ -43,7 +43,7 @@ export function DeleteClientButton({ id, name }: { id: string; name: string }) {
         <DialogHeader>
           <DialogTitle>Delete Client?</DialogTitle>
           <DialogDescription>
-            This will permanently delete "{name}" and all their data. This
+            This will permanently delete &quot;{name}&quot; and all their data. This
             cannot be undone.
           </DialogDescription>
         </DialogHeader>

@@ -1,15 +1,23 @@
+import { redirect } from "next/navigation";
 import { Compass } from "lucide-react";
 import { NavTabs } from "@/components/nav-tabs";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { requireCoach } from "@/lib/auth-utils";
+import { db } from "@/lib/db";
 
 export default async function CoachLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireCoach();
+  const session = await requireCoach();
+  // Force coaches through the welcome wizard before they can access coach routes
+  const coach = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { onboardedAt: true },
+  });
+  if (!coach?.onboardedAt) redirect("/welcome");
 
   return (
     <>

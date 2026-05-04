@@ -1,15 +1,13 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-function getTransport() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+let resendClient: Resend | null = null;
+function getResend() {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error("RESEND_API_KEY is not set");
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
 }
 
 const emailFrom = () => process.env.EMAIL_FROM || "Praevio <noreply@praevio.app>";
@@ -28,17 +26,15 @@ function emailWrapper(title: string, body: string) {
 }
 
 async function send(to: string, subject: string, html: string) {
-  const transport = getTransport();
-  try {
-    await transport.sendMail({
-      from: emailFrom(),
-      to,
-      subject,
-      html,
-    });
-  } catch (error) {
+  const { error } = await getResend().emails.send({
+    from: emailFrom(),
+    to,
+    subject,
+    html,
+  });
+  if (error) {
     console.error("Email send failed:", error);
-    throw new Error(`Failed to send email: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(`Failed to send email: ${error.message}`);
   }
 }
 

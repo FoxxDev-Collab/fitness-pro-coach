@@ -3,6 +3,27 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
+import { cuid, parseInput } from "@/lib/validations";
+import {
+  createTeamSchema,
+  updateTeamSchema,
+  addAthleteSchema,
+  updateAthleteSchema,
+  assignProgramToTeamSchema,
+  rolloverTeamSchema,
+  type CreateTeamInput,
+  type UpdateTeamInput,
+  type AddAthleteInput,
+  type UpdateAthleteInput,
+  type AssignProgramToTeamInput,
+  type RolloverTeamInput,
+} from "@/lib/validations/teams";
+
+function validateId(id: unknown, label: string): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error(`Invalid ${label}`);
+  return parsed.data;
+}
 
 export async function getTeams() {
   const coachId = await getCoachId();
@@ -23,9 +44,10 @@ export async function getTeams() {
 }
 
 export async function getTeam(id: string) {
+  const safeId = validateId(id, "team id");
   const coachId = await getCoachId();
   return db.team.findFirst({
-    where: { id, coachId },
+    where: { id: safeId, coachId },
     include: {
       athletes: {
         orderBy: { name: "asc" },
@@ -60,90 +82,65 @@ export async function getTeam(id: string) {
   });
 }
 
-export async function createTeam(data: {
-  name: string;
-  sport?: string;
-  season?: string;
-  description?: string;
-}) {
+export async function createTeam(input: CreateTeamInput) {
+  const parsed = parseInput(createTeamSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
   const team = await db.team.create({
-    data: { ...data, coachId },
+    data: { ...parsed.data, coachId },
   });
   revalidatePath("/teams");
   return team;
 }
 
-export async function updateTeam(
-  id: string,
-  data: {
-    name?: string;
-    sport?: string;
-    season?: string;
-    description?: string;
-    active?: boolean;
-  }
-) {
+export async function updateTeam(id: string, input: UpdateTeamInput) {
+  const safeId = validateId(id, "team id");
+  const parsed = parseInput(updateTeamSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
   const team = await db.team.update({
-    where: { id, coachId },
-    data,
+    where: { id: safeId, coachId },
+    data: parsed.data,
   });
   revalidatePath("/teams");
-  revalidatePath(`/teams/${id}`);
+  revalidatePath(`/teams/${safeId}`);
   return team;
 }
 
 export async function deleteTeam(id: string) {
+  const safeId = validateId(id, "team id");
   const coachId = await getCoachId();
-  await db.team.delete({ where: { id, coachId } });
+  await db.team.delete({ where: { id: safeId, coachId } });
   revalidatePath("/teams");
 }
 
 // ─── Athletes ──────────────────────────────────────────────
 
-export async function addAthlete(
-  teamId: string,
-  data: {
-    name: string;
-    email?: string;
-    phone?: string;
-    position?: string;
-    jerseyNumber?: string;
-    notes?: string;
-    parentName?: string;
-    parentEmail?: string;
-    parentPhone?: string;
-  }
-) {
+export async function addAthlete(teamId: string, input: AddAthleteInput) {
+  const safeTeamId = validateId(teamId, "team id");
+  const parsed = parseInput(addAthleteSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
-  const team = await db.team.findFirst({ where: { id: teamId, coachId } });
+  const team = await db.team.findFirst({ where: { id: safeTeamId, coachId } });
   if (!team) throw new Error("Team not found");
 
   const athlete = await db.athlete.create({
-    data: { ...data, teamId },
+    data: { ...parsed.data, teamId: safeTeamId },
   });
-  revalidatePath(`/teams/${teamId}`);
+  revalidatePath(`/teams/${safeTeamId}`);
   return athlete;
 }
 
-export async function updateAthlete(
-  id: string,
-  data: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    position?: string;
-    jerseyNumber?: string;
-    notes?: string;
-    parentName?: string;
-    parentEmail?: string;
-    parentPhone?: string;
-    active?: boolean;
-  }
-) {
+export async function updateAthlete(id: string, input: UpdateAthleteInput) {
+  const safeId = validateId(id, "athlete id");
+  const parsed = parseInput(updateAthleteSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const athlete = await db.athlete.findUnique({
-    where: { id },
+    where: { id: safeId },
     include: { team: { select: { coachId: true, id: true } } },
   });
   if (!athlete) throw new Error("Athlete not found");
@@ -151,14 +148,15 @@ export async function updateAthlete(
   const coachId = await getCoachId();
   if (athlete.team.coachId !== coachId) throw new Error("Not authorized");
 
-  const updated = await db.athlete.update({ where: { id }, data });
+  const updated = await db.athlete.update({ where: { id: safeId }, data: parsed.data });
   revalidatePath(`/teams/${athlete.team.id}`);
   return updated;
 }
 
 export async function removeAthlete(id: string) {
+  const safeId = validateId(id, "athlete id");
   const athlete = await db.athlete.findUnique({
-    where: { id },
+    where: { id: safeId },
     include: { team: { select: { coachId: true, id: true } } },
   });
   if (!athlete) throw new Error("Athlete not found");
@@ -166,18 +164,17 @@ export async function removeAthlete(id: string) {
   const coachId = await getCoachId();
   if (athlete.team.coachId !== coachId) throw new Error("Not authorized");
 
-  await db.athlete.delete({ where: { id } });
+  await db.athlete.delete({ where: { id: safeId } });
   revalidatePath(`/teams/${athlete.team.id}`);
 }
 
 // ─── Group Assignment ──────────────────────────────────────
 
-export async function assignProgramToTeam(data: {
-  teamId: string;
-  programId: string;
-  name: string;
-  startDate?: Date;
-}) {
+export async function assignProgramToTeam(input: AssignProgramToTeamInput) {
+  const parsed = parseInput(assignProgramToTeamSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+  const data = parsed.data;
+
   const coachId = await getCoachId();
 
   const team = await db.team.findFirst({
@@ -250,8 +247,9 @@ export async function assignProgramToTeam(data: {
 }
 
 export async function deleteTeamAssignment(id: string) {
+  const safeId = validateId(id, "team assignment id");
   const teamAssignment = await db.teamAssignment.findUnique({
-    where: { id },
+    where: { id: safeId },
     include: { team: { select: { coachId: true, id: true } } },
   });
   if (!teamAssignment) return;
@@ -260,8 +258,8 @@ export async function deleteTeamAssignment(id: string) {
   if (teamAssignment.team.coachId !== coachId) return;
 
   // Delete all individual athlete assignments linked to this team assignment
-  await db.assignment.deleteMany({ where: { teamAssignmentId: id } });
-  await db.teamAssignment.delete({ where: { id } });
+  await db.assignment.deleteMany({ where: { teamAssignmentId: safeId } });
+  await db.teamAssignment.delete({ where: { id: safeId } });
   revalidatePath(`/teams/${teamAssignment.team.id}`);
   revalidatePath("/programs");
 }
@@ -269,27 +267,25 @@ export async function deleteTeamAssignment(id: string) {
 // ─── Archive & Season Rollover ─────────────────────────────
 
 export async function archiveTeam(id: string) {
+  const safeId = validateId(id, "team id");
   const coachId = await getCoachId();
   await db.team.update({
-    where: { id, coachId },
+    where: { id: safeId, coachId },
     data: { archivedAt: new Date(), active: false },
   });
   revalidatePath("/teams");
-  revalidatePath(`/teams/${id}`);
+  revalidatePath(`/teams/${safeId}`);
 }
 
-export async function rolloverTeam(
-  id: string,
-  data: {
-    name: string;
-    season?: string;
-    sport?: string;
-    keepAthletes: boolean;
-  }
-) {
+export async function rolloverTeam(id: string, input: RolloverTeamInput) {
+  const safeId = validateId(id, "team id");
+  const parsed = parseInput(rolloverTeamSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+  const data = parsed.data;
+
   const coachId = await getCoachId();
   const oldTeam = await db.team.findFirst({
-    where: { id, coachId },
+    where: { id: safeId, coachId },
     include: { athletes: { where: { active: true } } },
   });
   if (!oldTeam) throw new Error("Team not found");
@@ -325,7 +321,7 @@ export async function rolloverTeam(
 
   // Archive old team
   await db.team.update({
-    where: { id },
+    where: { id: safeId },
     data: { archivedAt: new Date(), active: false },
   });
 
@@ -336,9 +332,10 @@ export async function rolloverTeam(
 // ─── Team Dashboard ────────────────────────────────────────
 
 export async function getTeamDashboard(teamId: string) {
+  const safeTeamId = validateId(teamId, "team id");
   const coachId = await getCoachId();
   const team = await db.team.findFirst({
-    where: { id: teamId, coachId },
+    where: { id: safeTeamId, coachId },
     include: {
       athletes: {
         where: { active: true },

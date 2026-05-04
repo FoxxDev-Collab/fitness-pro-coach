@@ -4,13 +4,30 @@ import { db } from "@/lib/db";
 import { signIn, auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { randomBytes } from "crypto";
 import { validatePassword, isCommonPassword } from "@/lib/password";
 import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/email";
 import * as OTPAuth from "otpauth";
 import { revalidatePath } from "next/cache";
+import { rateLimitByIp, tooManyRequestsMessage } from "@/lib/rate-limit";
+import {
+  signupSchema,
+  loginSchema,
+  requestPasswordResetSchema,
+  resetPasswordSchema,
+  acceptInviteSchema,
+  updateProfileSchema,
+  changePasswordSchema,
+  enableMfaSchema,
+  disableMfaSchema,
+  parseForm,
+} from "@/lib/validations/auth";
+
+function generateToken(): string {
+  return randomBytes(32).toString("hex");
+}
 
 function serverValidatePassword(password: string, confirmPassword: string) {
-  if (!password) return "Password is required";
   const { valid, errors } = validatePassword(password);
   if (!valid) return errors[0];
   if (password !== confirmPassword) return "Passwords do not match";
@@ -21,12 +38,12 @@ function serverValidatePassword(password: string, confirmPassword: string) {
 // ─── Signup ───────────────────────────────────────────────
 
 export async function signUp(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = (formData.get("email") as string)?.toLowerCase().trim();
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const rl = await rateLimitByIp("signup", 5, "1 h");
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
 
-  if (!name || !email) return { error: "Name and email are required" };
+  const parsed = parseForm(signupSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { name, email, password, confirmPassword } = parsed.data;
 
   const pwError = serverValidatePassword(password, confirmPassword);
   if (pwError) return { error: pwError };
@@ -44,6 +61,7 @@ export async function signUp(formData: FormData) {
   const verifyToken = await db.emailVerificationToken.create({
     data: {
       email,
+      token: generateToken(),
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     },
   });
@@ -61,11 +79,12 @@ export async function signUp(formData: FormData) {
 // ─── Login ───────────────────────────────────────────────
 
 export async function login(formData: FormData) {
-  const email = (formData.get("email") as string)?.toLowerCase().trim();
-  const password = formData.get("password") as string;
-  const mfaCode = formData.get("mfaCode") as string | null;
+  const rl = await rateLimitByIp("login", 10, "10 m");
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
 
-  if (!email || !password) return { error: "Email and password are required" };
+  const parsed = parseForm(loginSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { email, password, mfaCode } = parsed.data;
 
   // Check user exists and password is valid before signIn
   const user = await db.user.findUnique({ where: { email } });
@@ -99,12 +118,25 @@ export async function login(formData: FormData) {
 
   if (user.role === "ADMIN") redirect("/admin/dashboard");
   if (user.role === "CLIENT") redirect("/dashboard");
-  redirect("/clients");
+  // Coach: route through onboarding wizard if not yet completed
+  const coach = await db.user.findUnique({
+    where: { id: user.id },
+    select: { onboardedAt: true },
+  });
+  if (!coach?.onboardedAt) redirect("/welcome");
+  redirect("/");
 }
 
 // ─── Email Verification ──────────────────────────────────
 
 export async function verifyEmail(token: string) {
+  const rl = await rateLimitByIp("verify-email", 20, "10 m");
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
+
+  if (typeof token !== "string" || !/^[A-Za-z0-9_-]{16,256}$/.test(token)) {
+    return { error: "This verification link is invalid or expired" };
+  }
+
   const record = await db.emailVerificationToken.findUnique({ where: { token } });
   if (!record || record.used || record.expires < new Date()) {
     return { error: "This verification link is invalid or expired" };
@@ -127,6 +159,9 @@ export async function resendVerification() {
   const session = await auth();
   if (!session?.user?.email) return { error: "Not authenticated" };
 
+  const rl = await rateLimitByIp("resend-verify", 3, "1 h", session.user.email);
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
+
   const user = await db.user.findUnique({ where: { email: session.user.email } });
   if (!user) return { error: "User not found" };
   if (user.emailVerified) return { error: "Email already verified" };
@@ -140,6 +175,7 @@ export async function resendVerification() {
   const token = await db.emailVerificationToken.create({
     data: {
       email: user.email,
+      token: generateToken(),
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
   });
@@ -151,10 +187,14 @@ export async function resendVerification() {
 // ─── Password Reset ──────────────────────────────────────
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = (formData.get("email") as string)?.toLowerCase().trim();
-  if (!email) return { error: "Email is required" };
+  const rl = await rateLimitByIp("password-reset-request", 3, "1 h");
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
 
-  // Always return success to prevent email enumeration
+  const parsed = parseForm(requestPasswordResetSchema, formData);
+  // Always return success to prevent enumeration, even on invalid input
+  if (!parsed.ok) return { success: true };
+  const { email } = parsed.data;
+
   const user = await db.user.findUnique({ where: { email } });
   if (user) {
     // Expire old tokens
@@ -166,6 +206,7 @@ export async function requestPasswordReset(formData: FormData) {
     const token = await db.passwordResetToken.create({
       data: {
         email,
+        token: generateToken(),
         expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       },
     });
@@ -181,9 +222,12 @@ export async function requestPasswordReset(formData: FormData) {
 }
 
 export async function resetPassword(formData: FormData) {
-  const token = formData.get("token") as string;
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const rl = await rateLimitByIp("password-reset", 10, "1 h");
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
+
+  const parsed = parseForm(resetPasswordSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { token, password, confirmPassword } = parsed.data;
 
   const pwError = serverValidatePassword(password, confirmPassword);
   if (pwError) return { error: pwError };
@@ -240,7 +284,10 @@ export async function setupMfa() {
 export async function enableMfa(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const code = formData.get("code") as string;
+
+  const parsed = parseForm(enableMfaSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { code } = parsed.data;
 
   const user = await db.user.findUnique({ where: { id: session.user.id } });
   if (!user?.mfaSecret) return { error: "MFA not set up" };
@@ -267,7 +314,10 @@ export async function enableMfa(formData: FormData) {
 export async function disableMfa(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const password = formData.get("password") as string;
+
+  const parsed = parseForm(disableMfaSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { password } = parsed.data;
 
   const user = await db.user.findUnique({ where: { id: session.user.id } });
   if (!user?.password) return { error: "Cannot verify identity" };
@@ -290,8 +340,9 @@ export async function updateProfile(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const name = formData.get("name") as string;
-  if (!name) return { error: "Name is required" };
+  const parsed = parseForm(updateProfileSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { name } = parsed.data;
 
   await db.user.update({
     where: { id: session.user.id },
@@ -306,9 +357,9 @@ export async function changePassword(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const currentPassword = formData.get("currentPassword") as string;
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const parsed = parseForm(changePasswordSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { currentPassword, password, confirmPassword } = parsed.data;
 
   const user = await db.user.findUnique({ where: { id: session.user.id } });
   if (!user?.password) return { error: "Cannot verify identity" };
@@ -335,9 +386,12 @@ export async function changePassword(formData: FormData) {
 // ─── Accept Invite ───────────────────────────────────────
 
 export async function acceptInvite(formData: FormData) {
-  const token = formData.get("token") as string;
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const rl = await rateLimitByIp("accept-invite", 10, "1 h");
+  if (!rl.ok) return { error: tooManyRequestsMessage(rl.retryAfterSeconds) };
+
+  const parsed = parseForm(acceptInviteSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { token, password, confirmPassword } = parsed.data;
 
   const pwError = serverValidatePassword(password, confirmPassword);
   if (pwError) return { error: pwError };

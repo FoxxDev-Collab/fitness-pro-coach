@@ -3,6 +3,13 @@
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
+import { cuid } from "@/lib/validations";
+
+function validateId(id: unknown, label: string): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error(`Invalid ${label}`);
+  return parsed.data;
+}
 
 export async function getPlatformStats() {
   await requireAdmin();
@@ -43,9 +50,10 @@ export async function getCoaches() {
 
 export async function getCoachDetail(id: string) {
   await requireAdmin();
+  const safeId = validateId(id, "coach id");
 
   return db.user.findUnique({
-    where: { id, role: "COACH" },
+    where: { id: safeId, role: "COACH" },
     select: {
       id: true,
       name: true,
@@ -95,16 +103,22 @@ export async function getAllClients() {
 }
 
 export async function toggleUserStatus(userId: string) {
-  await requireAdmin();
+  const adminSession = await requireAdmin();
+  const safeId = validateId(userId, "user id");
 
-  const user = await db.user.findUnique({ where: { id: userId } });
+  // Don't let admins disable themselves
+  if (safeId === adminSession.user?.id) {
+    throw new Error("You cannot disable your own account");
+  }
+
+  const user = await db.user.findUnique({ where: { id: safeId } });
   if (!user) throw new Error("User not found");
 
   await db.user.update({
-    where: { id: userId },
+    where: { id: safeId },
     data: { active: !user.active },
   });
 
   revalidatePath("/admin/coaches");
-  revalidatePath(`/admin/coaches/${userId}`);
+  revalidatePath(`/admin/coaches/${safeId}`);
 }

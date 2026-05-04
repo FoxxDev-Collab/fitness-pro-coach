@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
@@ -19,6 +19,8 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -26,7 +28,6 @@
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "^0.4.6",
-    "nodemailer": "^7.0.13",
     "otpauth": "^9.5.0",
     "pg": "^8.18.0",
     "prisma": "^7.3.0",
@@ -36,13 +37,14 @@
     "react-body-highlighter": "^2.0.5",
     "react-dom": "19.2.3",
     "recharts": "^3.8.0",
-    "tailwind-merge": "^3.4.0"
+    "resend": "^6.12.2",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
-    "@types/nodemailer": "^7.0.11",
     "@types/pg": "^8.16.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",

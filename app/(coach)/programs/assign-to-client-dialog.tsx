@@ -95,7 +95,7 @@ export function AssignProgramToClientDialog({
                 />
                 <div>
                   <p className="font-medium text-yellow-400 text-sm">
-                    {selectedClient.name}'s Conditions
+                    {selectedClient.name}&apos;s Conditions
                   </p>
                   <p className="text-sm">{selectedClient.healthConditions}</p>
                 </div>

@@ -4,6 +4,26 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { sendSessionCompletedEmail } from "@/lib/email";
+import { cuid, parseInput } from "@/lib/validations";
+import {
+  saveSessionSchema,
+  updateSessionSchema,
+  type SaveSessionInput,
+  type UpdateSessionInput,
+} from "@/lib/validations/sessions";
+
+function validateId(id: unknown, label: string): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error(`Invalid ${label}`);
+  return parsed.data;
+}
+
+function validateWorkoutIndex(idx: unknown): number {
+  if (typeof idx !== "number" || !Number.isInteger(idx) || idx < 0 || idx > 1000) {
+    throw new Error("Invalid workout index");
+  }
+  return idx;
+}
 
 export type ExerciseHistoryEntry = {
   exerciseIndex: number;
@@ -15,16 +35,20 @@ export type ExerciseHistoryEntry = {
 
 export async function getExerciseHistory(
   assignmentId: string,
-  workoutIndex: number
+  workoutIndex: number,
 ): Promise<ExerciseHistoryEntry[]> {
+  const safeAssignmentId = validateId(assignmentId, "assignment id");
+  const safeWorkoutIndex = validateWorkoutIndex(workoutIndex);
+
   const session = await auth();
   if (!session?.user) throw new Error("Not authenticated");
 
   // Get the assignment and its exercises for this workout
   const assignment = await db.assignment.findUnique({
-    where: { id: assignmentId },
+    where: { id: safeAssignmentId },
     include: {
       client: { select: { id: true, coachId: true, userId: true } },
+      athlete: { include: { team: { select: { coachId: true } }, user: { select: { id: true } } } },
       workouts: {
         include: { exercises: { orderBy: { order: "asc" } } },
         orderBy: { order: "asc" },
@@ -34,11 +58,13 @@ export async function getExerciseHistory(
 
   if (!assignment) return [];
 
-  const isCoach = session.user.role === "COACH" && assignment.client?.coachId === session.user.id;
-  const isClient = session.user.role === "CLIENT" && assignment.client?.userId === session.user.id;
+  const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
+  const ownerUserId = assignment.client?.userId ?? assignment.athlete?.user?.id;
+  const isCoach = session.user.role === "COACH" && ownerCoachId === session.user.id;
+  const isClient = session.user.role === "CLIENT" && ownerUserId === session.user.id;
   if (!isCoach && !isClient) throw new Error("Unauthorized");
 
-  const workout = assignment.workouts[workoutIndex];
+  const workout = assignment.workouts[safeWorkoutIndex];
   if (!workout) return [];
 
   const exerciseNames = workout.exercises.map((e) => e.name);
@@ -87,8 +113,7 @@ export async function getExerciseHistory(
 
     for (const log of recentLogs) {
       // Skip current session's own data (same assignment + workout)
-      if (log.assignmentId === assignmentId && log.workoutIndex === workoutIndex) {
-        // Only skip if this is the most recent — we still want older sessions from same workout
+      if (log.assignmentId === safeAssignmentId && log.workoutIndex === safeWorkoutIndex) {
         continue;
       }
 
@@ -119,50 +144,34 @@ export async function getExerciseHistory(
   return history;
 }
 
-type SessionSetInput = {
-  setNumber: number;
-  reps?: number;
-  weight?: number;
-  duration?: number;
-  distance?: number;
-};
+export async function saveSession(input: SaveSessionInput) {
+  const parsed = parseInput(saveSessionSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+  const data = parsed.data;
 
-type SessionExerciseInput = {
-  exerciseIndex: number;
-  sets?: number;
-  reps?: number;
-  weight?: number;
-  duration?: number;
-  distance?: number;
-  notes?: string;
-  setDetails: SessionSetInput[];
-};
-
-export async function saveSession(data: {
-  assignmentId: string;
-  workoutIndex: number;
-  sessionNotes?: string;
-  duration?: number;
-  date: Date;
-  exercises: SessionExerciseInput[];
-}) {
   const session = await auth();
   if (!session?.user) throw new Error("Not authenticated");
 
-  // Verify access: coach owns the client/athlete, or client owns the assignment
+  // Verify access: coach owns the client/athlete, or client/athlete owns the assignment
   const assignment = await db.assignment.findUnique({
     where: { id: data.assignmentId },
     include: {
       client: { select: { coachId: true, userId: true, id: true } },
-      athlete: { include: { team: { select: { coachId: true } } } },
+      athlete: {
+        include: {
+          team: { select: { coachId: true } },
+          user: { select: { id: true } },
+        },
+      },
     },
   });
 
   if (!assignment) throw new Error("Assignment not found");
 
   const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
+  const ownerUserId = assignment.client?.userId ?? assignment.athlete?.user?.id;
   const isCoach = session.user.role === "COACH" && ownerCoachId === session.user.id;
-  const isClient = session.user.role === "CLIENT" && assignment.client?.userId === session.user.id;
+  const isClient = session.user.role === "CLIENT" && ownerUserId === session.user.id;
 
   if (!isCoach && !isClient) throw new Error("Unauthorized");
 
@@ -171,24 +180,24 @@ export async function saveSession(data: {
       assignmentId: data.assignmentId,
       workoutIndex: data.workoutIndex,
       sessionNotes: data.sessionNotes,
-      duration: data.duration,
+      duration: data.duration ?? null,
       date: data.date,
       exercises: {
         create: data.exercises.map((ex) => ({
           exerciseIndex: ex.exerciseIndex,
-          sets: ex.sets,
-          reps: ex.reps,
-          weight: ex.weight,
-          duration: ex.duration,
-          distance: ex.distance,
+          sets: ex.sets ?? null,
+          reps: ex.reps ?? null,
+          weight: ex.weight ?? null,
+          duration: ex.duration ?? null,
+          distance: ex.distance ?? null,
           notes: ex.notes,
           setDetails: {
             create: ex.setDetails.map((s) => ({
               setNumber: s.setNumber,
-              reps: s.reps,
-              weight: s.weight,
-              duration: s.duration,
-              distance: s.distance,
+              reps: s.reps ?? null,
+              weight: s.weight ?? null,
+              duration: s.duration ?? null,
+              distance: s.distance ?? null,
             })),
           },
         })),
@@ -222,7 +231,7 @@ export async function saveSession(data: {
           coach.email,
           client?.name || "A client",
           workoutName?.name || "a workout",
-          data.date
+          data.date,
         );
       }
     } catch (e) {
@@ -234,11 +243,12 @@ export async function saveSession(data: {
 }
 
 export async function deleteSession(sessionLogId: string) {
+  const safeId = validateId(sessionLogId, "session id");
   const session = await auth();
   if (!session?.user || session.user.role !== "COACH") throw new Error("Unauthorized");
 
   const log = await db.sessionLog.findUnique({
-    where: { id: sessionLogId },
+    where: { id: safeId },
     include: { assignment: { include: { client: { select: { coachId: true, id: true } }, athlete: { include: { team: { select: { coachId: true, id: true } } } } } } },
   });
 
@@ -246,26 +256,24 @@ export async function deleteSession(sessionLogId: string) {
   const logCoachId = log.assignment.client?.coachId ?? log.assignment.athlete?.team?.coachId;
   if (logCoachId !== session.user.id) throw new Error("Unauthorized");
 
-  await db.sessionLog.delete({ where: { id: sessionLogId } });
+  await db.sessionLog.delete({ where: { id: safeId } });
 
   if (log.assignment.client) revalidatePath(`/clients/${log.assignment.client.id}`);
   if (log.assignment.athlete) revalidatePath(`/teams/${log.assignment.athlete.team.id}`);
   revalidatePath("/reports");
 }
 
-export async function updateSession(
-  sessionLogId: string,
-  data: {
-    sessionNotes?: string;
-    date?: Date;
-    exercises: SessionExerciseInput[];
-  }
-) {
+export async function updateSession(sessionLogId: string, input: UpdateSessionInput) {
+  const safeId = validateId(sessionLogId, "session id");
+  const parsed = parseInput(updateSessionSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+  const data = parsed.data;
+
   const session = await auth();
   if (!session?.user || session.user.role !== "COACH") throw new Error("Unauthorized");
 
   const log = await db.sessionLog.findUnique({
-    where: { id: sessionLogId },
+    where: { id: safeId },
     include: { assignment: { include: { client: { select: { coachId: true, id: true } }, athlete: { include: { team: { select: { coachId: true, id: true } } } } } } },
   });
 
@@ -275,30 +283,30 @@ export async function updateSession(
 
   await db.$transaction(async (tx) => {
     // Delete existing exercises (cascade deletes sets)
-    await tx.sessionExercise.deleteMany({ where: { sessionLogId } });
+    await tx.sessionExercise.deleteMany({ where: { sessionLogId: safeId } });
 
     // Update log and recreate exercises
     await tx.sessionLog.update({
-      where: { id: sessionLogId },
+      where: { id: safeId },
       data: {
         sessionNotes: data.sessionNotes,
         date: data.date,
         exercises: {
           create: data.exercises.map((ex) => ({
             exerciseIndex: ex.exerciseIndex,
-            sets: ex.sets,
-            reps: ex.reps,
-            weight: ex.weight,
-            duration: ex.duration,
-            distance: ex.distance,
+            sets: ex.sets ?? null,
+            reps: ex.reps ?? null,
+            weight: ex.weight ?? null,
+            duration: ex.duration ?? null,
+            distance: ex.distance ?? null,
             notes: ex.notes,
             setDetails: {
               create: ex.setDetails.map((s) => ({
                 setNumber: s.setNumber,
-                reps: s.reps,
-                weight: s.weight,
-                duration: s.duration,
-                distance: s.distance,
+                reps: s.reps ?? null,
+                weight: s.weight ?? null,
+                duration: s.duration ?? null,
+                distance: s.distance ?? null,
               })),
             },
           })),

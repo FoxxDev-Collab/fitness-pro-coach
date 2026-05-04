@@ -3,6 +3,40 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
+import { cuid, parseInput } from "@/lib/validations";
+import {
+  createProgramSchema,
+  updateProgramSchema,
+  type CreateProgramInput,
+  type UpdateProgramInput,
+  type WorkoutInput,
+  type WorkoutExerciseInput,
+} from "@/lib/validations/programs";
+
+function validateId(id: unknown): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error("Invalid program id");
+  return parsed.data;
+}
+
+async function assertExercisesUsable(coachId: string, exerciseIds: string[]) {
+  if (exerciseIds.length === 0) return;
+  const unique = Array.from(new Set(exerciseIds));
+  const found = await db.exercise.findMany({
+    where: {
+      id: { in: unique },
+      OR: [{ coachId: null }, { coachId }],
+    },
+    select: { id: true },
+  });
+  if (found.length !== unique.length) {
+    throw new Error("One or more exercises are invalid");
+  }
+}
+
+function collectExerciseIds(workouts: WorkoutInput[]): string[] {
+  return workouts.flatMap((w) => w.exercises.map((e: WorkoutExerciseInput) => e.exerciseId));
+}
 
 export async function getPrograms() {
   const coachId = await getCoachId();
@@ -28,9 +62,10 @@ export async function getPrograms() {
 }
 
 export async function getProgram(id: string) {
+  const safeId = validateId(id);
   const coachId = await getCoachId();
   return db.program.findFirst({
-    where: { id, coachId },
+    where: { id: safeId, coachId },
     include: {
       workouts: {
         include: {
@@ -47,41 +82,24 @@ export async function getProgram(id: string) {
   });
 }
 
-type WorkoutExerciseInput = {
-  exerciseId: string;
-  order: number;
-  sets: number;
-  reps: number;
-  weight: number;
-  duration: number;
-  distance: number;
-  rest: number;
-  notes?: string;
-};
+export async function createProgram(data: CreateProgramInput) {
+  const parsed = parseInput(createProgramSchema, data);
+  if (!parsed.ok) throw new Error(parsed.error);
 
-type WorkoutInput = {
-  name: string;
-  order: number;
-  exercises: WorkoutExerciseInput[];
-};
-
-export async function createProgram(data: {
-  name: string;
-  description?: string;
-  workouts: WorkoutInput[];
-}) {
   const coachId = await getCoachId();
+  await assertExercisesUsable(coachId, collectExerciseIds(parsed.data.workouts));
+
   const program = await db.program.create({
     data: {
-      name: data.name,
-      description: data.description,
+      name: parsed.data.name,
+      description: parsed.data.description,
       coachId,
       workouts: {
-        create: data.workouts.map((w: WorkoutInput) => ({
+        create: parsed.data.workouts.map((w) => ({
           name: w.name,
           order: w.order,
           exercises: {
-            create: w.exercises.map((e: WorkoutExerciseInput) => ({
+            create: w.exercises.map((e) => ({
               exerciseId: e.exerciseId,
               order: e.order,
               sets: e.sets,
@@ -101,32 +119,30 @@ export async function createProgram(data: {
   return program;
 }
 
-export async function updateProgram(
-  id: string,
-  data: {
-    name: string;
-    description?: string;
-    workouts: WorkoutInput[];
-  }
-) {
+export async function updateProgram(id: string, data: UpdateProgramInput) {
+  const safeId = validateId(id);
+  const parsed = parseInput(updateProgramSchema, data);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
-  // Verify ownership
-  const existing = await db.program.findFirst({ where: { id, coachId } });
+  const existing = await db.program.findFirst({ where: { id: safeId, coachId } });
   if (!existing) throw new Error("Program not found");
 
-  await db.workout.deleteMany({ where: { programId: id } });
+  await assertExercisesUsable(coachId, collectExerciseIds(parsed.data.workouts));
+
+  await db.workout.deleteMany({ where: { programId: safeId } });
 
   const program = await db.program.update({
-    where: { id },
+    where: { id: safeId },
     data: {
-      name: data.name,
-      description: data.description,
+      name: parsed.data.name,
+      description: parsed.data.description,
       workouts: {
-        create: data.workouts.map((w: WorkoutInput) => ({
+        create: parsed.data.workouts.map((w) => ({
           name: w.name,
           order: w.order,
           exercises: {
-            create: w.exercises.map((e: WorkoutExerciseInput) => ({
+            create: w.exercises.map((e) => ({
               exerciseId: e.exerciseId,
               order: e.order,
               sets: e.sets,
@@ -143,20 +159,22 @@ export async function updateProgram(
     },
   });
   revalidatePath("/programs");
-  revalidatePath(`/programs/${id}`);
+  revalidatePath(`/programs/${safeId}`);
   return program;
 }
 
 export async function deleteProgram(id: string) {
+  const safeId = validateId(id);
   const coachId = await getCoachId();
-  await db.program.delete({ where: { id, coachId } });
+  await db.program.delete({ where: { id: safeId, coachId } });
   revalidatePath("/programs");
 }
 
 export async function duplicateProgram(id: string) {
+  const safeId = validateId(id);
   const coachId = await getCoachId();
   const original = await db.program.findFirst({
-    where: { id, coachId },
+    where: { id: safeId, coachId },
     include: {
       workouts: {
         include: {

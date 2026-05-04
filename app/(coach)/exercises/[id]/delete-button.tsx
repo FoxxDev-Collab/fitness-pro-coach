@@ -42,7 +42,7 @@ export function DeleteExerciseButton({ id, name }: { id: string; name: string })
         <DialogHeader>
           <DialogTitle>Delete Exercise?</DialogTitle>
           <DialogDescription>
-            This will permanently delete "{name}". This cannot be undone.
+            This will permanently delete &quot;{name}&quot;. This cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

@@ -21,12 +21,6 @@ type Program = {
   workouts: { id: string }[];
 };
 
-type Client = {
-  id: string;
-  name: string;
-  healthConditions: string | null;
-};
-
 export function AssignProgramDialog({
   clientId,
   clientName,
@@ -97,7 +91,7 @@ export function AssignProgramDialog({
                 />
                 <div>
                   <p className="font-medium text-yellow-400 text-sm">
-                    {clientName}'s Conditions
+                    {clientName}&apos;s Conditions
                   </p>
                   <p className="text-sm">{healthConditions}</p>
                 </div>

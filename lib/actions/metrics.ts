@@ -3,7 +3,23 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
-import { MetricScope } from "@prisma/client";
+import { cuid, parseInput } from "@/lib/validations";
+import {
+  createMetricDefinitionSchema,
+  updateMetricDefinitionSchema,
+  recordMetricEntrySchema,
+  updateMetricEntrySchema,
+  type CreateMetricDefinitionInput,
+  type UpdateMetricDefinitionInput,
+  type RecordMetricEntryInput,
+  type UpdateMetricEntryInput,
+} from "@/lib/validations/metrics";
+
+function validateId(id: unknown, label: string): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error(`Invalid ${label}`);
+  return parsed.data;
+}
 
 // ─── Metric Definitions ────────────────────────────────────
 
@@ -23,40 +39,40 @@ export async function getAllMetricDefinitions() {
   });
 }
 
-export async function createMetricDefinition(data: {
-  name: string;
-  unit: string;
-  scope: MetricScope;
-  description?: string;
-}) {
+export async function createMetricDefinition(input: CreateMetricDefinitionInput) {
+  const parsed = parseInput(createMetricDefinitionSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
   const metric = await db.metricDefinition.create({
-    data: { ...data, coachId },
+    data: { ...parsed.data, coachId },
   });
   revalidatePath("/teams");
   return metric;
 }
 
-export async function updateMetricDefinition(
-  id: string,
-  data: { name?: string; unit?: string; description?: string }
-) {
+export async function updateMetricDefinition(id: string, input: UpdateMetricDefinitionInput) {
+  const safeId = validateId(id, "metric id");
+  const parsed = parseInput(updateMetricDefinitionSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
-  const metric = await db.metricDefinition.findFirst({ where: { id, coachId } });
+  const metric = await db.metricDefinition.findFirst({ where: { id: safeId, coachId } });
   if (!metric) throw new Error("Metric not found");
 
-  const updated = await db.metricDefinition.update({ where: { id }, data });
+  const updated = await db.metricDefinition.update({ where: { id: safeId }, data: parsed.data });
   revalidatePath("/teams");
   return updated;
 }
 
 export async function archiveMetricDefinition(id: string) {
+  const safeId = validateId(id, "metric id");
   const coachId = await getCoachId();
-  const metric = await db.metricDefinition.findFirst({ where: { id, coachId } });
+  const metric = await db.metricDefinition.findFirst({ where: { id: safeId, coachId } });
   if (!metric) throw new Error("Metric not found");
 
   await db.metricDefinition.update({
-    where: { id },
+    where: { id: safeId },
     data: { archived: !metric.archived },
   });
   revalidatePath("/teams");
@@ -71,11 +87,23 @@ export async function getMetricEntries(params: {
   eventId?: string;
 }) {
   const coachId = await getCoachId();
+  // Validate any IDs that were passed
+  const where: {
+    metricDefinitionId?: string;
+    teamId?: string;
+    athleteId?: string;
+    eventId?: string;
+    metricDefinition: { coachId: string };
+  } = { metricDefinition: { coachId } };
+  if (params.metricDefinitionId !== undefined) {
+    where.metricDefinitionId = validateId(params.metricDefinitionId, "metric id");
+  }
+  if (params.teamId !== undefined) where.teamId = validateId(params.teamId, "team id");
+  if (params.athleteId !== undefined) where.athleteId = validateId(params.athleteId, "athlete id");
+  if (params.eventId !== undefined) where.eventId = validateId(params.eventId, "event id");
+
   return db.metricEntry.findMany({
-    where: {
-      ...params,
-      metricDefinition: { coachId },
-    },
+    where,
     include: {
       metricDefinition: true,
       athlete: { select: { id: true, name: true } },
@@ -85,18 +113,14 @@ export async function getMetricEntries(params: {
   });
 }
 
-export async function recordMetricEntry(data: {
-  metricDefinitionId: string;
-  teamId?: string;
-  athleteId?: string;
-  eventId?: string;
-  value: number;
-  notes?: string;
-  date: Date;
-}) {
+export async function recordMetricEntry(input: RecordMetricEntryInput) {
+  const parsed = parseInput(recordMetricEntrySchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+  const data = parsed.data;
+
   const coachId = await getCoachId();
 
-  // Verify ownership
+  // Verify metric ownership
   const metric = await db.metricDefinition.findFirst({
     where: { id: data.metricDefinitionId, coachId },
   });
@@ -105,6 +129,24 @@ export async function recordMetricEntry(data: {
   // Verify scope
   if (metric.scope === "TEAM" && !data.teamId) throw new Error("Team ID required for team metric");
   if (metric.scope === "ATHLETE" && !data.athleteId) throw new Error("Athlete ID required for athlete metric");
+
+  // Verify ownership of the team/athlete being measured
+  if (data.teamId) {
+    const team = await db.team.findFirst({ where: { id: data.teamId, coachId } });
+    if (!team) throw new Error("Team not found");
+  }
+  if (data.athleteId) {
+    const athlete = await db.athlete.findFirst({
+      where: { id: data.athleteId, team: { coachId } },
+    });
+    if (!athlete) throw new Error("Athlete not found");
+  }
+  if (data.eventId) {
+    const event = await db.teamEvent.findFirst({
+      where: { id: data.eventId, team: { coachId } },
+    });
+    if (!event) throw new Error("Event not found");
+  }
 
   const entry = await db.metricEntry.create({ data });
 
@@ -120,18 +162,19 @@ export async function recordMetricEntry(data: {
   return entry;
 }
 
-export async function updateMetricEntry(
-  id: string,
-  data: { value?: number; notes?: string; date?: Date; eventId?: string }
-) {
+export async function updateMetricEntry(id: string, input: UpdateMetricEntryInput) {
+  const safeId = validateId(id, "metric entry id");
+  const parsed = parseInput(updateMetricEntrySchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
   const entry = await db.metricEntry.findUnique({
-    where: { id },
+    where: { id: safeId },
     include: { metricDefinition: { select: { coachId: true } } },
   });
   if (!entry || entry.metricDefinition.coachId !== coachId) throw new Error("Not found");
 
-  await db.metricEntry.update({ where: { id }, data });
+  await db.metricEntry.update({ where: { id: safeId }, data: parsed.data });
 
   if (entry.teamId) revalidatePath(`/teams/${entry.teamId}`);
   if (entry.athleteId) {
@@ -144,14 +187,15 @@ export async function updateMetricEntry(
 }
 
 export async function deleteMetricEntry(id: string) {
+  const safeId = validateId(id, "metric entry id");
   const coachId = await getCoachId();
   const entry = await db.metricEntry.findUnique({
-    where: { id },
+    where: { id: safeId },
     include: { metricDefinition: { select: { coachId: true } } },
   });
   if (!entry || entry.metricDefinition.coachId !== coachId) throw new Error("Not found");
 
-  await db.metricEntry.delete({ where: { id } });
+  await db.metricEntry.delete({ where: { id: safeId } });
 
   if (entry.teamId) revalidatePath(`/teams/${entry.teamId}`);
   if (entry.athleteId) {
@@ -166,8 +210,9 @@ export async function deleteMetricEntry(id: string) {
 // ─── Summaries ─────────────────────────────────────────────
 
 export async function getTeamMetricSummary(teamId: string) {
+  const safeTeamId = validateId(teamId, "team id");
   const coachId = await getCoachId();
-  const team = await db.team.findFirst({ where: { id: teamId, coachId } });
+  const team = await db.team.findFirst({ where: { id: safeTeamId, coachId } });
   if (!team) throw new Error("Team not found");
 
   const definitions = await db.metricDefinition.findMany({
@@ -177,7 +222,7 @@ export async function getTeamMetricSummary(teamId: string) {
   const summaries = await Promise.all(
     definitions.map(async (def) => {
       const entries = await db.metricEntry.findMany({
-        where: { metricDefinitionId: def.id, teamId },
+        where: { metricDefinitionId: def.id, teamId: safeTeamId },
         orderBy: { date: "asc" },
         include: { event: { select: { title: true, startTime: true } } },
       });
@@ -191,14 +236,21 @@ export async function getTeamMetricSummary(teamId: string) {
         total: entries.reduce((sum, e) => sum + e.value, 0),
         count: entries.length,
       };
-    })
+    }),
   );
 
   return summaries;
 }
 
 export async function getAthleteMetricSummary(athleteId: string) {
+  const safeAthleteId = validateId(athleteId, "athlete id");
   const coachId = await getCoachId();
+
+  // Verify ownership
+  const athlete = await db.athlete.findFirst({
+    where: { id: safeAthleteId, team: { coachId } },
+  });
+  if (!athlete) throw new Error("Athlete not found");
 
   const definitions = await db.metricDefinition.findMany({
     where: { coachId, scope: "ATHLETE", archived: false },
@@ -207,7 +259,7 @@ export async function getAthleteMetricSummary(athleteId: string) {
   const summaries = await Promise.all(
     definitions.map(async (def) => {
       const entries = await db.metricEntry.findMany({
-        where: { metricDefinitionId: def.id, athleteId },
+        where: { metricDefinitionId: def.id, athleteId: safeAthleteId },
         orderBy: { date: "asc" },
         include: { event: { select: { title: true, startTime: true } } },
       });
@@ -224,8 +276,8 @@ export async function getAthleteMetricSummary(athleteId: string) {
         best: best?.value ?? null,
         count: entries.length,
       };
-    })
+    }),
   );
 
-  return summaries.filter((s) => s.count > 0 || true); // return all, even empty
+  return summaries;
 }

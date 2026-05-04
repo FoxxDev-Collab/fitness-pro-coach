@@ -5,13 +5,20 @@ import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
 import { sendProgramAssignedEmail } from "@/lib/email";
 import { auth } from "@/lib/auth";
+import { cuid, parseInput } from "@/lib/validations";
+import { assignProgramSchema, type AssignProgramInput } from "@/lib/validations/assignments";
 
-export async function assignProgram(data: {
-  clientId: string;
-  programId: string;
-  name: string;
-  startDate?: Date;
-}) {
+function validateId(id: unknown): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error("Invalid id");
+  return parsed.data;
+}
+
+export async function assignProgram(input: AssignProgramInput) {
+  const parsed = parseInput(assignProgramSchema, input);
+  if (!parsed.ok) throw new Error(parsed.error);
+  const data = parsed.data;
+
   const coachId = await getCoachId();
 
   // Verify client belongs to this coach
@@ -95,9 +102,10 @@ export async function assignProgram(data: {
 }
 
 export async function deleteAssignment(id: string) {
+  const safeId = validateId(id);
   const coachId = await getCoachId();
   const assignment = await db.assignment.findUnique({
-    where: { id },
+    where: { id: safeId },
     include: {
       client: { select: { coachId: true, id: true } },
       athlete: { include: { team: { select: { coachId: true, id: true } } } },
@@ -108,7 +116,7 @@ export async function deleteAssignment(id: string) {
   const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
   if (ownerCoachId !== coachId) return;
 
-  await db.assignment.delete({ where: { id } });
+  await db.assignment.delete({ where: { id: safeId } });
   if (assignment.client) revalidatePath(`/clients/${assignment.client.id}`);
   if (assignment.athlete) revalidatePath(`/teams/${assignment.athlete.team.id}`);
   revalidatePath("/programs");

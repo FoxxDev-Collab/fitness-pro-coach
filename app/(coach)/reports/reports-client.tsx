@@ -52,6 +52,7 @@ export function ReportsClientView({
   logs: SessionLog[];
 }) {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [weekAgo] = useState(() => Date.now() - 604800000);
 
   const client = clientStats.find((c: ClientStat) => c.id === selectedClient);
 
@@ -64,7 +65,7 @@ export function ReportsClientView({
     const exerciseProgressData = computeExerciseProgress(clientLogs, clientAssignments);
 
     const thisWeekLogs = clientLogs.filter(
-      (l: SessionLog) => new Date(l.date).getTime() > Date.now() - 604800000
+      (l: SessionLog) => new Date(l.date).getTime() > weekAgo
     );
 
     const stats = [

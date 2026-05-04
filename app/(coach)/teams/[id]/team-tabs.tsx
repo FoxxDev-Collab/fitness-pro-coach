@@ -19,8 +19,6 @@ import {
   ChevronUp,
   Pin,
   Archive,
-  CheckCircle2,
-  Circle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +73,6 @@ import {
   archiveMetricDefinition,
   recordMetricEntry,
   deleteMetricEntry,
-  getAthleteMetricSummary,
 } from "@/lib/actions/metrics";
 import { MetricChart } from "@/components/charts/metric-chart";
 
@@ -622,24 +619,26 @@ function AthleteDetailPanel({
     "info" | "notes" | "metrics"
   >("info");
   const [notes, setNotes] = useState<AthleteNoteType[] | null>(null);
-  const [loadingNotes, setLoadingNotes] = useState(false);
+  const loadingNotes = activeSection === "notes" && notes === null;
 
   useEffect(() => {
-    if (activeSection === "notes" && notes === null) {
-      setLoadingNotes(true);
-      getAthleteNotes(athlete.id)
-        .then((result) => setNotes(result as AthleteNoteType[]))
-        .catch(console.error)
-        .finally(() => setLoadingNotes(false));
-    }
+    if (activeSection !== "notes" || notes !== null) return;
+    let cancelled = false;
+    getAthleteNotes(athlete.id)
+      .then((result) => {
+        if (!cancelled) setNotes(result as AthleteNoteType[]);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setNotes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [activeSection, athlete.id, notes]);
 
   const refreshNotes = () => {
-    setLoadingNotes(true);
-    getAthleteNotes(athlete.id)
-      .then((result) => setNotes(result as AthleteNoteType[]))
-      .catch(console.error)
-      .finally(() => setLoadingNotes(false));
+    setNotes(null);
   };
 
   return (
@@ -2674,6 +2673,7 @@ function NotesTab({
 
 // ─── Announcements Tab ──────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AnnouncementsTab({
   teamId,
   announcements,

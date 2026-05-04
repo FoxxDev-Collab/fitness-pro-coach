@@ -498,7 +498,7 @@ export function ProgramEditor({
                     />
                     <p className="text-muted-foreground">No exercises yet</p>
                     <p className="text-muted-foreground text-sm mt-1">
-                      Click "Add Exercise" to get started
+                      Click &quot;Add Exercise&quot; to get started
                     </p>
                   </div>
                 ) : (

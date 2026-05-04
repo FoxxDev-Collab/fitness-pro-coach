@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Throwaway prototype, not imported by the app:
+    "prototype/**",
   ]),
 ]);
 

@@ -3,6 +3,19 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
+import { cuid, parseInput } from "@/lib/validations";
+import {
+  createClientSchema,
+  updateClientSchema,
+  type CreateClientInput,
+  type UpdateClientInput,
+} from "@/lib/validations/clients";
+
+function validateId(id: unknown): string {
+  const parsed = cuid.safeParse(id);
+  if (!parsed.success) throw new Error("Invalid client id");
+  return parsed.data;
+}
 
 export async function getClients() {
   const coachId = await getCoachId();
@@ -26,9 +39,10 @@ export async function getClients() {
 }
 
 export async function getClient(id: string) {
+  const safeId = validateId(id);
   const coachId = await getCoachId();
   return db.client.findFirst({
-    where: { id, coachId },
+    where: { id: safeId, coachId },
     include: {
       assignments: {
         include: {
@@ -60,21 +74,15 @@ export async function getClient(id: string) {
   });
 }
 
-export async function createClient(data: {
-  name: string;
-  email?: string;
-  phone?: string;
-  gender?: string;
-  goals?: string;
-  healthConditions?: string;
-  notes?: string;
-  active?: boolean;
-}) {
+export async function createClient(data: CreateClientInput) {
+  const parsed = parseInput(createClientSchema, data);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
   const client = await db.client.create({
     data: {
-      ...data,
-      active: data.active ?? true,
+      ...parsed.data,
+      active: parsed.data.active ?? true,
       coachId,
     },
   });
@@ -82,31 +90,24 @@ export async function createClient(data: {
   return client;
 }
 
-export async function updateClient(
-  id: string,
-  data: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    gender?: string;
-    goals?: string;
-    healthConditions?: string;
-    notes?: string;
-    active?: boolean;
-  }
-) {
+export async function updateClient(id: string, data: UpdateClientInput) {
+  const safeId = validateId(id);
+  const parsed = parseInput(updateClientSchema, data);
+  if (!parsed.ok) throw new Error(parsed.error);
+
   const coachId = await getCoachId();
   const client = await db.client.update({
-    where: { id, coachId },
-    data,
+    where: { id: safeId, coachId },
+    data: parsed.data,
   });
   revalidatePath("/clients");
-  revalidatePath(`/clients/${id}`);
+  revalidatePath(`/clients/${safeId}`);
   return client;
 }
 
 export async function deleteClient(id: string) {
+  const safeId = validateId(id);
   const coachId = await getCoachId();
-  await db.client.delete({ where: { id, coachId } });
+  await db.client.delete({ where: { id: safeId, coachId } });
   revalidatePath("/clients");
 }

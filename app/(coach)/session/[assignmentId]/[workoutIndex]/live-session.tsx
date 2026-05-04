@@ -55,7 +55,6 @@ export function LiveSession({
   workoutIndex,
   clientName,
   clientHealth,
-  clientGender,
   workoutName,
   exercises,
   previousData,
@@ -64,7 +63,6 @@ export function LiveSession({
   workoutIndex: number;
   clientName: string;
   clientHealth: string | null;
-  clientGender?: string | null;
   workoutName: string;
   exercises: ExerciseTarget[];
   previousData?: ExerciseHistoryEntry[];
@@ -72,7 +70,7 @@ export function LiveSession({
   const router = useRouter();
   const [currentExercise, setCurrentExercise] = useState(0);
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(
-    exercises.map((_: ExerciseTarget) => ({ actualSets: [], notes: "" }))
+    exercises.map(() => ({ actualSets: [], notes: "" }))
   );
   const [sessionNotes, setSessionNotes] = useState("");
   const [startTime] = useState(Date.now());
@@ -176,7 +174,6 @@ export function LiveSession({
         .map((state: ExerciseState, idx: number) => {
           if (state.actualSets.length === 0 && !state.notes) return null;
 
-          const target = exercises[idx];
           const maxWeight = Math.max(
             ...state.actualSets.map((s: ActualSet) => s.weight || 0),
             0

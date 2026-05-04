@@ -61,7 +61,6 @@ export default async function SessionPage({
       workoutIndex={workoutIdx}
       clientName={assignment.client?.name ?? assignment.athlete?.name ?? "Athlete"}
       clientHealth={assignment.client?.healthConditions ?? null}
-      clientGender={assignment.client?.gender ?? assignment.athlete?.gender ?? null}
       workoutName={workout.name}
       previousData={previousData}
       exercises={workout.exercises.map((e: WorkoutExercise) => ({
