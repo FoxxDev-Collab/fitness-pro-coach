@@ -244,3 +244,25 @@ export async function sendInviteEmail(to: string, inviteUrl: string, coachName: 
     )
   );
 }
+
+export async function sendAdminInviteEmail(to: string, token: string, inviterName: string) {
+  const url = `${baseUrl()}/invite/admin/${token}`;
+  await send(
+    to,
+    "You've been invited to Praevio Admin",
+    emailWrapper(
+      "Praevio admin invitation",
+      `
+        <p style="color: #6b7280; margin-bottom: 24px;">
+          ${inviterName} has invited you to administer the Praevio platform. Click below to set your password and activate your admin account.
+        </p>
+        <a href="${url}" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          Activate admin account
+        </a>
+        <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">
+          This link expires in 7 days. If you weren't expecting this, you can ignore the email.
+        </p>
+      `
+    )
+  );
+}
