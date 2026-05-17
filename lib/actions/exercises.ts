@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCoachId } from "@/lib/auth-utils";
-import { cuid, parseInput } from "@/lib/validations";
+import { exerciseId as exerciseIdSchema, parseInput } from "@/lib/validations";
 import {
   createExerciseSchema,
   updateExerciseSchema,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/validations/exercises";
 
 function validateId(id: unknown): string {
-  const parsed = cuid.safeParse(id);
+  const parsed = exerciseIdSchema.safeParse(id);
   if (!parsed.success) throw new Error("Invalid exercise id");
   return parsed.data;
 }
