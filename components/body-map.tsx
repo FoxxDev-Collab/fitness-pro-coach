@@ -44,19 +44,47 @@ function useCssColor(cssVar: string, fallback: string): string {
   return color;
 }
 
-// Map our app's muscle names to react-body-highlighter muscle identifiers
+// Map our app's muscle names to react-body-highlighter muscle identifiers.
+// Keys are matched case-insensitively after trimming. Include both canonical
+// names used in the exercise form (Chest, Quads, ...) and common aliases that
+// appear in the seed library or that a coach might enter for a custom
+// exercise ("Legs", "Obliques", "Forearms").
 const MUSCLE_MAP: Record<string, string[]> = {
-  Chest: ["chest"],
-  Back: ["upper-back", "lower-back"],
-  Shoulders: ["front-deltoids", "back-deltoids"],
-  Biceps: ["biceps"],
-  Triceps: ["triceps"],
-  Core: ["abs", "obliques"],
-  Quads: ["quadriceps"],
-  Hamstrings: ["hamstring"],
-  Glutes: ["gluteal"],
-  Calves: ["calves"],
-  "Full Body": [
+  chest: ["chest"],
+  back: ["upper-back", "lower-back"],
+  "upper back": ["upper-back"],
+  "lower back": ["lower-back"],
+  shoulders: ["front-deltoids", "back-deltoids"],
+  delts: ["front-deltoids", "back-deltoids"],
+  deltoids: ["front-deltoids", "back-deltoids"],
+  traps: ["trapezius"],
+  trapezius: ["trapezius"],
+  biceps: ["biceps"],
+  triceps: ["triceps"],
+  forearms: ["forearm"],
+  forearm: ["forearm"],
+  core: ["abs", "obliques"],
+  abs: ["abs"],
+  obliques: ["obliques"],
+  quads: ["quadriceps"],
+  quadriceps: ["quadriceps"],
+  hamstrings: ["hamstring"],
+  hamstring: ["hamstring"],
+  glutes: ["gluteal"],
+  gluteal: ["gluteal"],
+  calves: ["calves"],
+  legs: ["quadriceps", "hamstring", "gluteal", "calves"],
+  "lower body": ["quadriceps", "hamstring", "gluteal", "calves"],
+  "upper body": [
+    "chest",
+    "upper-back",
+    "front-deltoids",
+    "back-deltoids",
+    "biceps",
+    "triceps",
+    "forearm",
+  ],
+  "full body": [
     "chest",
     "upper-back",
     "lower-back",
@@ -64,6 +92,7 @@ const MUSCLE_MAP: Record<string, string[]> = {
     "back-deltoids",
     "biceps",
     "triceps",
+    "forearm",
     "abs",
     "obliques",
     "quadriceps",
@@ -81,7 +110,7 @@ const SIZE_STYLES = {
 
 function mapMusclesToData(activeMuscles: string[]): IExerciseData[] {
   const mapped = activeMuscles.flatMap(
-    (m) => MUSCLE_MAP[m.trim()] || []
+    (m) => MUSCLE_MAP[m.trim().toLowerCase()] || []
   );
   // Deduplicate
   const unique = [...new Set(mapped)];
