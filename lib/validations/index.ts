@@ -42,6 +42,17 @@ export const cuid = z
   .max(40, "Invalid id")
   .regex(/^[a-z0-9]+$/, "Invalid id");
 
+/**
+ * Exercise id: accepts either a Prisma cuid OR a slug id from the seeded
+ * default library (e.g. "cycling", "barbell-back-squat"). Access control
+ * still happens in the query via the coachId check.
+ */
+export const exerciseId = z
+  .string()
+  .min(1, "Invalid exercise id")
+  .max(40, "Invalid exercise id")
+  .regex(/^[a-z0-9-]+$/, "Invalid exercise id");
+
 /** Permissive optional string that becomes null when blank/missing. */
 export const optionalText = (max = 5000) =>
   z

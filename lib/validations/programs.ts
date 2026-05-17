@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cuid } from "./index";
+import { exerciseId } from "./index";
 
 const optionalString = (max: number) =>
   z
@@ -10,7 +10,7 @@ const optionalString = (max: number) =>
     .or(z.literal("").transform(() => undefined));
 
 const workoutExerciseSchema = z.object({
-  exerciseId: cuid,
+  exerciseId: exerciseId,
   order: z.number().int().min(0).max(1000),
   sets: z.number().int().min(0).max(1000),
   reps: z.number().int().min(0).max(10_000),
