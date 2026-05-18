@@ -2,12 +2,6 @@ import { z } from "zod";
 
 // ─── Shared helpers ──────────────────────────────────────
 
-const trimmedString = (max: number) =>
-  z.string().trim().max(max);
-
-const optionalTrimmedString = (max: number) =>
-  z.string().trim().max(max).optional().transform((s) => (s ? s : null));
-
 const optionalNullableString = (max: number) =>
   z.preprocess(
     (v) => (typeof v === "string" ? v.trim() : v),

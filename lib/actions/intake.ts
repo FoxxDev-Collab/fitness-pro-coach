@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { getEffectiveSession, requireClient, getCoachId } from "@/lib/auth-utils";
+import { requireClient, getCoachId } from "@/lib/auth-utils";
 import { parseInput } from "@/lib/validations";
 import { submitIntakeSchema, type SubmitIntakeInput } from "@/lib/validations/intake";
 
