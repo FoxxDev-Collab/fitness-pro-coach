@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getEffectiveSession, requireClient, getCoachId } from "@/lib/auth-utils";
 import { parseInput } from "@/lib/validations";
@@ -113,7 +114,7 @@ export async function submitIntake(input: SubmitIntakeInput) {
         physicianRestrictions: parsed.data.physicianRestrictions,
         physicianName: parsed.data.physicianName,
         physicianPhone: parsed.data.physicianPhone,
-        injuries: parsed.data.injuries.length > 0 ? parsed.data.injuries : null,
+        injuries: parsed.data.injuries.length > 0 ? parsed.data.injuries : Prisma.JsonNull,
         chronicPain: parsed.data.chronicPain,
         painAreas: parsed.data.painAreas,
         waiverTextSnapshot: coach.waiverText!,
