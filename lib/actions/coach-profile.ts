@@ -95,17 +95,6 @@ export async function updateCoachProfile(input: UpdateCoachProfileInput) {
 
   const coachId = await getCoachId();
 
-  // For intakeSlug, additionally check uniqueness in DB
-  if (parsed.data.intakeSlug) {
-    const existing = await db.user.findUnique({
-      where: { intakeSlug: parsed.data.intakeSlug },
-      select: { id: true },
-    });
-    if (existing && existing.id !== coachId) {
-      return { error: "That intake URL is already taken" };
-    }
-  }
-
   await db.user.update({ where: { id: coachId }, data: parsed.data });
 
   revalidatePath("/");
