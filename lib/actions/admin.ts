@@ -79,7 +79,6 @@ export async function listCoaches(input?: Partial<ListUsersInput>) {
       { email: { contains: q, mode: "insensitive" } },
       { businessName: { contains: q, mode: "insensitive" } },
       { specialty: { contains: q, mode: "insensitive" } },
-      { intakeSlug: { contains: q, mode: "insensitive" } },
     ];
   }
 
@@ -97,7 +96,7 @@ export async function listCoaches(input?: Partial<ListUsersInput>) {
         createdAt: true,
         businessName: true,
         specialty: true,
-        intakeSlug: true,
+        waiverText: true,
         onboardedAt: true,
         _count: { select: { clients: true, programs: true, teams: true } },
       },
@@ -246,7 +245,7 @@ export async function getCoachDetail(id: string) {
       businessName: true,
       specialty: true,
       bio: true,
-      intakeSlug: true,
+      waiverText: true,
       timezone: true,
       onboardedAt: true,
       mfaEnabled: true,
@@ -601,16 +600,16 @@ export async function exportCoachesCsv(): Promise<{ filename: string; csv: strin
     orderBy: { createdAt: "desc" },
     select: {
       id: true, name: true, email: true, active: true, createdAt: true,
-      businessName: true, specialty: true, intakeSlug: true, timezone: true,
+      businessName: true, specialty: true, waiverText: true, timezone: true,
       onboardedAt: true, emailVerified: true,
       _count: { select: { clients: true, programs: true, teams: true } },
     },
   });
 
   const csv = toCsv(
-    ["id", "name", "email", "businessName", "specialty", "intakeSlug", "timezone", "active", "emailVerified", "onboardedAt", "createdAt", "clients", "programs", "teams"],
+    ["id", "name", "email", "businessName", "specialty", "hasWaiver", "timezone", "active", "emailVerified", "onboardedAt", "createdAt", "clients", "programs", "teams"],
     coaches.map((c) => [
-      c.id, c.name, c.email, c.businessName, c.specialty, c.intakeSlug, c.timezone,
+      c.id, c.name, c.email, c.businessName, c.specialty, c.waiverText ? "true" : "false", c.timezone,
       c.active, !!c.emailVerified, c.onboardedAt?.toISOString() ?? null, c.createdAt.toISOString(),
       c._count.clients, c._count.programs, c._count.teams,
     ]),

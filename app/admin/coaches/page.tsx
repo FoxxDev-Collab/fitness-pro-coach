@@ -33,7 +33,7 @@ export default async function AdminCoachesPage({
       </div>
 
       <ListToolbar
-        placeholder="Search by name, email, business, specialty, slug..."
+        placeholder="Search by name, email, business, specialty..."
         filters={
           <FilterSelect
             paramKey="status"
@@ -71,6 +71,13 @@ export default async function AdminCoachesPage({
                       <Sparkles className="size-3" /> Onboarded
                     </Badge>
                   )}
+                  {coach.waiverText ? (
+                    <Badge variant="secondary">Waiver: Set</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-warning/50 text-warning">
+                      Waiver: Missing
+                    </Badge>
+                  )}
                   {coach.specialty && (
                     <span className="text-xs text-muted-foreground">{coach.specialty}</span>
                   )}
@@ -78,7 +85,6 @@ export default async function AdminCoachesPage({
                 <p className="text-sm text-muted-foreground truncate">
                   {coach.email}
                   {coach.businessName && <> · {coach.businessName}</>}
-                  {coach.intakeSlug && <> · /intake/{coach.intakeSlug}</>}
                 </p>
               </div>
               <div className="flex items-center gap-4 ml-4 shrink-0">
