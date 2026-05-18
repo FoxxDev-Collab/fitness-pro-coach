@@ -10,6 +10,7 @@ import { ClientTabs } from "./client-tabs";
 import { InviteClientButton } from "@/components/invite-client-button";
 import { getClient } from "@/lib/actions/clients";
 import { getClientInviteStatus } from "@/lib/actions/invites";
+import { getClientIntakeForCoach } from "@/lib/actions/intake";
 import { getClientNotes } from "@/lib/actions/notes";
 import { requireCoach } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
@@ -27,13 +28,14 @@ export default async function ClientDetailPage({
   }
 
   const session = await requireCoach();
-  const [inviteStatus, notes, coach] = await Promise.all([
+  const [inviteStatus, notes, coach, intakeResponse] = await Promise.all([
     getClientInviteStatus(id),
     getClientNotes(id),
     db.user.findUnique({
       where: { id: session.user.id },
       select: { waiverText: true },
     }),
+    getClientIntakeForCoach(id),
   ]);
 
   type ClientWithRelations = NonNullable<typeof client>;
@@ -110,6 +112,7 @@ export default async function ClientDetailPage({
         logs={clientLogs}
         measurements={client.measurements}
         notes={notes}
+        intakeResponse={intakeResponse}
       />
     </div>
   );

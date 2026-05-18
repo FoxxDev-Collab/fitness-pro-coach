@@ -17,6 +17,7 @@ import { deleteSession } from "@/lib/actions/sessions";
 import { EditSessionDialog } from "@/components/edit-session-dialog";
 import { createNote, updateNote, deleteNote, togglePinNote } from "@/lib/actions/notes";
 import { Textarea } from "@/components/ui/textarea";
+import { IntakeTab, type IntakeResponseData } from "./intake-tab";
 
 type Client = {
   id: string;
@@ -84,12 +85,14 @@ export function ClientTabs({
   logs,
   measurements,
   notes,
+  intakeResponse,
 }: {
   client: Client;
   assignments: Assignment[];
   logs: Log[];
   measurements: Measurement[];
   notes: ClientNote[];
+  intakeResponse: IntakeResponseData | null;
 }) {
   const [selectWorkout, setSelectWorkout] = useState<Assignment | null>(null);
 
@@ -132,6 +135,7 @@ export function ClientTabs({
         <TabsTrigger value="measurements">Measurements</TabsTrigger>
         <TabsTrigger value="calendar">Calendar</TabsTrigger>
         <TabsTrigger value="notes">Notes</TabsTrigger>
+        <TabsTrigger value="intake">Intake</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="mt-4">
@@ -160,6 +164,9 @@ export function ClientTabs({
       </TabsContent>
       <TabsContent value="notes" className="mt-4">
         <NotesTab clientId={client.id} notes={notes} />
+      </TabsContent>
+      <TabsContent value="intake" className="mt-4">
+        <IntakeTab clientId={client.id} response={intakeResponse} />
       </TabsContent>
     </Tabs>
   );
