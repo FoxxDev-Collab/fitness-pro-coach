@@ -143,7 +143,7 @@ export async function getSetupProgress() {
         businessName: true,
         specialty: true,
         timezone: true,
-        intakeSlug: true,
+        waiverText: true,
         onboardedAt: true,
         setupChecklistDismissedAt: true,
       },
@@ -162,8 +162,7 @@ export async function getSetupProgress() {
     hasClient: clientCount > 0,
     hasProgram: programCount > 0,
     hasAssignment: assignmentCount > 0,
-    hasIntakeSlug: !!user.intakeSlug,
-    intakeSlug: user.intakeSlug,
+    hasWaiver: !!user.waiverText,
     onboardedAt: user.onboardedAt,
     checklistDismissed: !!user.setupChecklistDismissedAt,
   };

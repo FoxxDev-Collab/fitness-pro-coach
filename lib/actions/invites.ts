@@ -29,8 +29,12 @@ export async function inviteClient(clientId: string) {
 
   const coach = await db.user.findUnique({
     where: { id: coachId },
-    select: { name: true },
+    select: { name: true, waiverText: true },
   });
+
+  if (!coach?.waiverText) {
+    throw new Error("Add your liability waiver in Settings before inviting clients");
+  }
 
   // Expire any existing unused invites for this client
   await db.inviteToken.updateMany({
