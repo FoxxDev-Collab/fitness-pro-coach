@@ -78,11 +78,15 @@ export default async function CoachDetailPage({
           <ProfileField label="Specialty" value={coach.specialty} />
           <ProfileField label="Timezone" value={coach.timezone} />
           <ProfileField
-            label="Intake URL"
+            label="Waiver"
             value={
-              coach.intakeSlug ? (
-                <span className="font-mono text-xs">praevio.fitness/intake/{coach.intakeSlug}</span>
-              ) : null
+              coach.waiverText ? (
+                <Badge variant="secondary">Set</Badge>
+              ) : (
+                <Badge variant="outline" className="border-warning/50 text-warning">
+                  Missing
+                </Badge>
+              )
             }
           />
           <div className="sm:col-span-2">

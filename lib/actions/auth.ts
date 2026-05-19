@@ -408,6 +408,17 @@ export async function acceptInvite(formData: FormData) {
   const hashed = await bcrypt.hash(password, 12);
 
   if (user) {
+    // Existing User row (e.g. a stale signup attempt). The invite link itself
+    // proves email ownership, so set the password the client just chose and
+    // mark them verified.
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashed,
+        emailVerified: user.emailVerified ?? new Date(),
+        name: user.name ?? client.name,
+      },
+    });
     await db.client.update({
       where: { id: client.id },
       data: { userId: user.id },

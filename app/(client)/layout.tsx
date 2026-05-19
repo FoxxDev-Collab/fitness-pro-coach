@@ -1,15 +1,26 @@
 import { Compass } from "lucide-react";
+import { redirect } from "next/navigation";
 import { ClientNav } from "@/components/client-nav";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { requireClient } from "@/lib/auth-utils";
+import { db } from "@/lib/db";
 
 export default async function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireClient();
+  const session = await requireClient();
+
+  const client = await db.client.findUnique({
+    where: { userId: session.user.id },
+    select: { intakeResponse: { select: { id: true } } },
+  });
+
+  if (!client?.intakeResponse) {
+    redirect("/onboarding/intake");
+  }
 
   return (
     <>

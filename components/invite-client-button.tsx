@@ -8,10 +8,12 @@ import { inviteClient } from "@/lib/actions/invites";
 export function InviteClientButton({
   clientId,
   hasEmail,
+  hasWaiver,
   inviteStatus,
 }: {
   clientId: string;
   hasEmail: boolean;
+  hasWaiver: boolean;
   inviteStatus: "none" | "pending" | "active" | null;
 }) {
   const [loading, setLoading] = useState(false);
@@ -31,6 +33,15 @@ export function InviteClientButton({
       <Button variant="outline" size="sm" disabled title="Add client email first">
         <Send className="size-4 mr-1.5" />
         No email
+      </Button>
+    );
+  }
+
+  if (!hasWaiver) {
+    return (
+      <Button variant="outline" size="sm" disabled title="Add your liability waiver in Settings first">
+        <Send className="size-4 mr-1.5" />
+        Waiver needed
       </Button>
     );
   }

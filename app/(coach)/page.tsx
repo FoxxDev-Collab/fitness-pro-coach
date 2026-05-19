@@ -4,7 +4,6 @@ import { requireCoach } from "@/lib/auth-utils";
 import { getSetupProgress } from "@/lib/actions/coach-profile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Users,
   ClipboardList,
@@ -12,7 +11,6 @@ import {
   Plus,
   ArrowRight,
   TrendingUp,
-  Calendar,
   Sparkles,
 } from "lucide-react";
 import { SetupChecklist } from "./setup-checklist";
@@ -30,7 +28,7 @@ export default async function CoachDashboardPage() {
 
   const showChecklist =
     !setup.checklistDismissed &&
-    !(setup.profileComplete && setup.hasClient && setup.hasProgram && setup.hasAssignment && setup.hasIntakeSlug);
+    !(setup.profileComplete && setup.hasClient && setup.hasProgram && setup.hasAssignment && setup.hasWaiver);
 
   return (
     <div className="space-y-8">
@@ -49,8 +47,7 @@ export default async function CoachDashboardPage() {
           hasClient={setup.hasClient}
           hasProgram={setup.hasProgram}
           hasAssignment={setup.hasAssignment}
-          hasIntakeSlug={setup.hasIntakeSlug}
-          intakeSlug={setup.intakeSlug}
+          hasWaiver={setup.hasWaiver}
         />
       )}
 
@@ -141,22 +138,6 @@ export default async function CoachDashboardPage() {
         </Card>
       </div>
 
-      {setup.intakeSlug && (
-        <Card className="bg-muted/40 border-dashed">
-          <CardContent className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <Calendar className="size-4 text-primary shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Your public intake URL</p>
-                <code className="text-xs text-muted-foreground font-mono truncate block">
-                  praevio.fitness/intake/{setup.intakeSlug}
-                </code>
-              </div>
-            </div>
-            <Badge variant="secondary" className="shrink-0">Coming soon</Badge>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

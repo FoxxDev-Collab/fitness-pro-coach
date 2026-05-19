@@ -33,6 +33,7 @@ model User {
   specialty                 String?
   bio                       String?
   intakeSlug                String?   @unique
+  waiverText                String?
   timezone                  String?
   onboardedAt               DateTime?
   setupChecklistDismissedAt DateTime?
@@ -45,6 +46,7 @@ model User {
   exercises     Exercise[] @relation("CoachExercises")
   programs      Program[]  @relation("CoachPrograms")
   teams         Team[]     @relation("CoachTeams")
+  intakeQuestions IntakeQuestion[] @relation("CoachIntakeQuestions")
 
   // Client relationship
   clientProfile Client?    @relation("ClientUser")
@@ -177,6 +179,7 @@ model Client {
   assignments      Assignment[]
   measurements     Measurement[]
   clientNotes      ClientNote[]
+  intakeResponse   IntakeResponse?
 
   @@index([coachId])
 }
@@ -580,4 +583,82 @@ model MetricEntry {
   @@index([teamId])
   @@index([athleteId])
   @@index([eventId])
+}
+
+// ─── Client Intake ─────────────────────────────────────────
+
+enum IntakeQuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  SINGLE_CHOICE
+  MULTI_CHOICE
+}
+
+model IntakeQuestion {
+  id        String             @id @default(cuid())
+  coachId   String
+  coach     User               @relation("CoachIntakeQuestions", fields: [coachId], references: [id], onDelete: Cascade)
+  text      String
+  type      IntakeQuestionType
+  options   String[]
+  required  Boolean            @default(false)
+  position  Int                @default(0)
+  archived  Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  answers   IntakeAnswer[]
+
+  @@index([coachId])
+}
+
+model IntakeResponse {
+  id                    String         @id @default(cuid())
+  clientId              String         @unique
+  client                Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  dateOfBirth           DateTime?
+  sex                   String?
+  heightInches          Int?
+  weightLbs             Float?
+  occupation            String?
+
+  medicalConditions     String[]
+  conditionsOther       String?
+  medications           String?
+  pregnancyStatus       String?
+  physicianRestrictions String?
+  physicianName         String?
+  physicianPhone        String?
+  injuries              Json?
+  chronicPain           String?
+  painAreas             String[]
+
+  waiverTextSnapshot    String
+  signatureName         String
+  signatureIp           String
+  signatureUserAgent    String
+  signedAt              DateTime
+
+  submittedAt           DateTime       @default(now())
+  answers               IntakeAnswer[]
+
+  @@index([clientId])
+}
+
+model IntakeAnswer {
+  id                   String             @id @default(cuid())
+  responseId           String
+  response             IntakeResponse     @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId           String
+  question             IntakeQuestion     @relation(fields: [questionId], references: [id])
+
+  textValue            String?
+  choiceValues         String[]
+
+  questionTextSnapshot String
+  questionTypeSnapshot IntakeQuestionType
+  optionsSnapshot      String[]
+
+  @@unique([responseId, questionId])
+  @@index([questionId])
 }
