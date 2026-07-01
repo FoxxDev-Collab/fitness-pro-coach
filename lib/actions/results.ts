@@ -108,11 +108,33 @@ export async function getMeetResults(eventId: string) {
 export async function saveMeetResults(eventId: string, input: SaveMeetResultsInput) {
   const safeId = validateId(eventId, "event id");
   const event = await assertEventOwned(safeId);
+  const coachId = event.team.coachId;
   const parsed = parseInput(saveMeetResultsSchema, input);
   if (!parsed.ok) throw new Error(parsed.error);
 
-  for (const row of parsed.data.rows) {
-    if (!row.dnf && row.value == null) continue; // skip empty rows
+  const rowsToWrite = parsed.data.rows.filter((r) => r.dnf || r.value != null);
+
+  // Authorization: every athlete must belong to THIS team and every discipline
+  // to THIS coach — otherwise a crafted payload could attach results to another
+  // coach's athlete/discipline (IDOR via unvalidated foreign keys).
+  const athleteIds = [...new Set(rowsToWrite.map((r) => r.athleteId))];
+  const disciplineIds = [...new Set(rowsToWrite.map((r) => r.disciplineId))];
+  if (athleteIds.length > 0) {
+    const found = await db.athlete.findMany({
+      where: { id: { in: athleteIds }, teamId: event.team.id },
+      select: { id: true },
+    });
+    if (found.length !== athleteIds.length) throw new Error("Invalid athlete");
+  }
+  if (disciplineIds.length > 0) {
+    const found = await db.discipline.findMany({
+      where: { id: { in: disciplineIds }, coachId },
+      select: { id: true },
+    });
+    if (found.length !== disciplineIds.length) throw new Error("Invalid discipline");
+  }
+
+  for (const row of rowsToWrite) {
     const data = {
       value: row.value ?? 0,
       place: row.place ?? null,
