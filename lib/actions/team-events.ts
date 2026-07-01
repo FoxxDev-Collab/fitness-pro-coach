@@ -84,6 +84,29 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
   if (event.team.coachId !== coachId) throw new Error("Not authorized");
 
   const updated = await db.teamEvent.update({ where: { id: safeId }, data: parsed.data });
+
+  // Notify athletes & parents about the updated event when requested.
+  if (parsed.data.notifyParents === true) {
+    try {
+      const team = await db.team.findUnique({
+        where: { id: event.team.id },
+        select: { name: true },
+      });
+      if (team) {
+        await sendEventEmails(
+          event.team.id,
+          team.name,
+          updated.title,
+          updated.type,
+          updated.startTime,
+          updated.location,
+        );
+      }
+    } catch (e) {
+      console.error("Failed to send event update notification emails:", e);
+    }
+  }
+
   revalidatePath(`/teams/${event.team.id}`);
   return updated;
 }

@@ -50,7 +50,7 @@ import {
   assignProgramToTeam,
   deleteTeamAssignment,
 } from "@/lib/actions/teams";
-import { createEvent, deleteEvent } from "@/lib/actions/team-events";
+import { createEvent, updateEvent, deleteEvent } from "@/lib/actions/team-events";
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -221,6 +221,9 @@ export function TeamTabs({
         <TabsTrigger value="schedule" className="gap-1.5">
           <Calendar className="size-3.5" /> Schedule
         </TabsTrigger>
+        <TabsTrigger value="announcements" className="gap-1.5">
+          <Megaphone className="size-3.5" /> Announcements
+        </TabsTrigger>
         <TabsTrigger value="programs" className="gap-1.5">
           <ClipboardList className="size-3.5" /> Programs
         </TabsTrigger>
@@ -246,6 +249,12 @@ export function TeamTabs({
       </TabsContent>
       <TabsContent value="schedule">
         <ScheduleTab teamId={team.id} events={team.events} />
+      </TabsContent>
+      <TabsContent value="announcements">
+        <AnnouncementsTab
+          teamId={team.id}
+          announcements={team.announcements}
+        />
       </TabsContent>
       <TabsContent value="programs">
         <ProgramsTab
@@ -1463,15 +1472,22 @@ function ScheduleTab({
           </p>
         )}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-destructive shrink-0"
-        disabled={deleting === e.id}
-        onClick={() => handleDelete(e.id)}
-      >
-        <Trash2 className="size-4" />
-      </Button>
+      <div className="flex items-center shrink-0">
+        <EventFormDialog teamId={teamId} event={e}>
+          <Button variant="ghost" size="icon">
+            <Edit2 className="size-4" />
+          </Button>
+        </EventFormDialog>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-destructive"
+          disabled={deleting === e.id}
+          onClick={() => handleDelete(e.id)}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
     </div>
   );
 
@@ -1534,28 +1550,74 @@ const EVENT_TYPES = [
   { value: "OTHER", label: "Other" },
 ] as const;
 
+// Format a Date into the `YYYY-MM-DD` / `HH:MM` strings the date/time inputs
+// expect, using local time so the values round-trip through
+// `new Date(`${date}T${time}:00`)` in handleSubmit.
+const toDateInput = (d: Date) => {
+  const dt = new Date(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+const toTimeInput = (d: Date) => {
+  const dt = new Date(d);
+  const h = String(dt.getHours()).padStart(2, "0");
+  const min = String(dt.getMinutes()).padStart(2, "0");
+  return `${h}:${min}`;
+};
+
+function buildEventForm(event?: TeamEvent) {
+  if (!event) {
+    return {
+      title: "",
+      type: "PRACTICE" as string,
+      description: "",
+      location: "",
+      opponent: "",
+      date: new Date().toISOString().split("T")[0],
+      startTime: "09:00",
+      endTime: "",
+      allDay: false,
+      notifyParents: true,
+    };
+  }
+  return {
+    title: event.title,
+    type: event.type,
+    description: event.description ?? "",
+    location: event.location ?? "",
+    opponent: event.opponent ?? "",
+    date: toDateInput(event.startTime),
+    startTime: event.allDay ? "09:00" : toTimeInput(event.startTime),
+    endTime: event.endTime && !event.allDay ? toTimeInput(event.endTime) : "",
+    allDay: event.allDay,
+    // Editing an existing event: don't notify by default to avoid accidental
+    // re-notifications on minor edits — coach opts in per edit.
+    notifyParents: false,
+  };
+}
+
 function EventFormDialog({
   teamId,
+  event,
   children,
 }: {
   teamId: string;
+  event?: TeamEvent;
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const isEdit = !!event;
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    type: "PRACTICE" as string,
-    description: "",
-    location: "",
-    opponent: "",
-    date: new Date().toISOString().split("T")[0],
-    startTime: "09:00",
-    endTime: "",
-    allDay: false,
-    notifyParents: true,
-  });
+  const [form, setForm] = useState(() => buildEventForm(event));
+
+  // Re-sync the form to the event whenever the dialog is (re)opened, so a
+  // stale edit isn't left behind after cancelling.
+  useEffect(() => {
+    if (open) setForm(buildEventForm(event));
+  }, [open, event]);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -1572,7 +1634,7 @@ function EventFormDialog({
           ? new Date(`${form.date}T${form.endTime}:00`)
           : undefined;
 
-      await createEvent(teamId, {
+      const payload = {
         title: form.title,
         type: form.type as "PRACTICE",
         description: form.description || undefined,
@@ -1582,20 +1644,15 @@ function EventFormDialog({
         endTime,
         allDay: form.allDay,
         notifyParents: form.notifyParents,
-      });
+      };
+
+      if (isEdit) {
+        await updateEvent(event.id, payload);
+      } else {
+        await createEvent(teamId, payload);
+      }
       setOpen(false);
-      setForm({
-        title: "",
-        type: "PRACTICE",
-        description: "",
-        location: "",
-        opponent: "",
-        date: new Date().toISOString().split("T")[0],
-        startTime: "09:00",
-        endTime: "",
-        allDay: false,
-        notifyParents: true,
-      });
+      if (!isEdit) setForm(buildEventForm());
       router.refresh();
     } catch (e) {
       console.error(e);
@@ -1609,7 +1666,7 @@ function EventFormDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Event</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Event" : "New Event"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -1707,7 +1764,9 @@ function EventFormDialog({
               onCheckedChange={(c) => set("notifyParents", !!c)}
             />
             <Label htmlFor="notify" className="cursor-pointer">
-              Notify athletes & parents via email
+              {isEdit
+                ? "Email athletes & parents about this change"
+                : "Notify athletes & parents via email"}
             </Label>
           </div>
           <Button
@@ -1715,7 +1774,13 @@ function EventFormDialog({
             disabled={!form.title || saving}
             className="w-full"
           >
-            {saving ? "Creating..." : "Create Event"}
+            {saving
+              ? isEdit
+                ? "Saving..."
+                : "Creating..."
+              : isEdit
+                ? "Save Changes"
+                : "Create Event"}
           </Button>
         </div>
       </DialogContent>
@@ -2673,7 +2738,6 @@ function NotesTab({
 
 // ─── Announcements Tab ──────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AnnouncementsTab({
   teamId,
   announcements,

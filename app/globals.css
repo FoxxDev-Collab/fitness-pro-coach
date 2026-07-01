@@ -202,4 +202,16 @@
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
+  /* Ensure selected text stays legible in both light and dark mode. Without
+     an explicit color the browser keeps the near-white dark-mode foreground
+     on a light default highlight, making selected text unreadable. The
+     primary/primary-foreground pair inverts correctly across themes. */
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  ::-moz-selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
 }

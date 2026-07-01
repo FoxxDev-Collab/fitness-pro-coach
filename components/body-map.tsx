@@ -24,11 +24,12 @@ function normalizeColor(raw: string, fallback: string): string {
 }
 
 function useCssColor(cssVar: string, fallback: string): string {
-  const [color, setColor] = useState(() => {
-    if (typeof window === "undefined") return fallback;
-    const computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar);
-    return normalizeColor(computed, fallback);
-  });
+  // Always start from the fallback so the server render and the client's first
+  // (hydration) render agree. Reading getComputedStyle in the initializer made
+  // the client's first render differ from the server's, producing an SVG
+  // hydration mismatch that left the body map blank until a manual refresh.
+  // The effect below resolves the real theme color right after mount.
+  const [color, setColor] = useState(fallback);
   // Re-resolve on theme change (the .dark class is toggled on <html>)
   useEffect(() => {
     const root = document.documentElement;
