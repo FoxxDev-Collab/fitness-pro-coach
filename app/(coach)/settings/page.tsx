@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { SettingsClient } from "./settings-client";
 import { CoachProfileSection } from "./coach-profile-section";
+import { IntakeSection } from "./intake-section";
+import { getCoachIntakeConfig } from "@/lib/actions/coach-intake-config";
 
 export default async function SettingsPage() {
   const session = await auth();
@@ -19,12 +21,13 @@ export default async function SettingsPage() {
       businessName: true,
       specialty: true,
       bio: true,
-      intakeSlug: true,
       timezone: true,
     },
   });
 
   if (!user) redirect("/login");
+
+  const intakeConfig = session.user.role === "COACH" ? await getCoachIntakeConfig() : null;
 
   return (
     <div className="space-y-6">
@@ -36,13 +39,27 @@ export default async function SettingsPage() {
         joinedAt={user.createdAt.toISOString()}
       />
       {session.user.role === "COACH" && (
-        <CoachProfileSection
-          businessName={user.businessName ?? ""}
-          specialty={user.specialty ?? ""}
-          bio={user.bio ?? ""}
-          intakeSlug={user.intakeSlug ?? ""}
-          timezone={user.timezone ?? ""}
-        />
+        <>
+          <CoachProfileSection
+            businessName={user.businessName ?? ""}
+            specialty={user.specialty ?? ""}
+            bio={user.bio ?? ""}
+            timezone={user.timezone ?? ""}
+          />
+          {intakeConfig && (
+            <IntakeSection
+              initialWaiverText={intakeConfig.waiverText}
+              initialQuestions={intakeConfig.questions.map((q) => ({
+                id: q.id,
+                text: q.text,
+                type: q.type,
+                options: q.options,
+                required: q.required,
+                position: q.position,
+              }))}
+            />
+          )}
+        </>
       )}
     </div>
   );

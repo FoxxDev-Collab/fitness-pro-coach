@@ -20,15 +20,13 @@ export function SetupChecklist({
   hasClient,
   hasProgram,
   hasAssignment,
-  hasIntakeSlug,
-  intakeSlug,
+  hasWaiver,
 }: {
   profileComplete: boolean;
   hasClient: boolean;
   hasProgram: boolean;
   hasAssignment: boolean;
-  hasIntakeSlug: boolean;
-  intakeSlug: string | null;
+  hasWaiver: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [dismissed, setDismissed] = useState(false);
@@ -42,16 +40,16 @@ export function SetupChecklist({
       cta: "Edit profile",
     },
     {
-      done: hasIntakeSlug,
-      label: "Customize your intake link",
-      hint: intakeSlug ? `praevio.fitness/intake/${intakeSlug}` : "Pick the public URL clients use to send you their intake",
+      done: hasWaiver,
+      label: "Add your liability waiver",
+      hint: "Required before you can invite clients",
       href: "/settings",
-      cta: "Customize",
+      cta: "Add waiver",
     },
     {
       done: hasClient,
       label: "Add your first client",
-      hint: "Or wait for a submission from your intake link",
+      hint: "Their account is created when you send the invite",
       href: "/clients",
       cta: "Add client",
     },

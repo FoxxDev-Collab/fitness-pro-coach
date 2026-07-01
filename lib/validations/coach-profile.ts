@@ -17,14 +17,6 @@ export const updateCoachProfileSchema = z.object({
   specialty: optionalNullableString(80),
   bio: optionalNullableString(240),
   timezone: optionalNullableString(80),
-  intakeSlug: z
-    .union([
-      z.string().trim().toLowerCase().regex(SLUG_PATTERN, "Use 3-40 letters, numbers, or hyphens"),
-      z.literal(""),
-      z.null(),
-    ])
-    .optional()
-    .transform((v) => (v == null || v === "" ? null : v)),
 });
 
 export type UpdateCoachProfileInput = z.infer<typeof updateCoachProfileSchema>;

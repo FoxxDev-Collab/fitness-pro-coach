@@ -95,17 +95,6 @@ export async function updateCoachProfile(input: UpdateCoachProfileInput) {
 
   const coachId = await getCoachId();
 
-  // For intakeSlug, additionally check uniqueness in DB
-  if (parsed.data.intakeSlug) {
-    const existing = await db.user.findUnique({
-      where: { intakeSlug: parsed.data.intakeSlug },
-      select: { id: true },
-    });
-    if (existing && existing.id !== coachId) {
-      return { error: "That intake URL is already taken" };
-    }
-  }
-
   await db.user.update({ where: { id: coachId }, data: parsed.data });
 
   revalidatePath("/");
@@ -143,7 +132,7 @@ export async function getSetupProgress() {
         businessName: true,
         specialty: true,
         timezone: true,
-        intakeSlug: true,
+        waiverText: true,
         onboardedAt: true,
         setupChecklistDismissedAt: true,
       },
@@ -162,8 +151,7 @@ export async function getSetupProgress() {
     hasClient: clientCount > 0,
     hasProgram: programCount > 0,
     hasAssignment: assignmentCount > 0,
-    hasIntakeSlug: !!user.intakeSlug,
-    intakeSlug: user.intakeSlug,
+    hasWaiver: !!user.waiverText,
     onboardedAt: user.onboardedAt,
     checklistDismissed: !!user.setupChecklistDismissedAt,
   };
