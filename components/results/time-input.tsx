@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { parseTime, formatTime } from "@/lib/results/format";
@@ -26,10 +26,15 @@ export function TimeInput({
 }: TimeInputProps) {
   const [text, setText] = useState(value == null ? "" : formatTime(value));
   const [invalid, setInvalid] = useState(false);
-
-  useEffect(() => {
+  // Reset the displayed text when the external value changes (e.g. the parent
+  // rebuilds rows on discipline change) — adjusting state during render, the
+  // React-recommended alternative to a synchronous setState-in-effect.
+  const [lastValue, setLastValue] = useState(value);
+  if (value !== lastValue) {
+    setLastValue(value);
     setText(value == null ? "" : formatTime(value));
-  }, [value]);
+    setInvalid(false);
+  }
 
   const commit = () => {
     if (!text.trim()) {

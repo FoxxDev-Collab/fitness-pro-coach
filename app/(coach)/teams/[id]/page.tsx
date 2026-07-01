@@ -10,6 +10,10 @@ import { TeamTabs } from "./team-tabs";
 import { getTeam, getTeamDashboard } from "@/lib/actions/teams";
 import { getTeamNotes } from "@/lib/actions/team-notes";
 import { getMetricDefinitions, getMetricEntries } from "@/lib/actions/metrics";
+import {
+  ensureDefaultDisciplines,
+  getTeamResultsOverview,
+} from "@/lib/actions/results";
 
 export default async function TeamDetailPage({
   params,
@@ -35,6 +39,9 @@ export default async function TeamDetailPage({
       team.athletes.map((a) => getMetricEntries({ athleteId: a.id }))
     ).then((results) => results.flat()),
   ]);
+
+  await ensureDefaultDisciplines();
+  const results = await getTeamResultsOverview(id);
 
   return (
     <div className="space-y-6">
@@ -87,6 +94,7 @@ export default async function TeamDetailPage({
         metricDefinitions={metricDefinitions}
         teamMetricEntries={teamMetricEntries}
         athleteMetricEntries={athleteMetricEntries}
+        results={results}
       />
     </div>
   );

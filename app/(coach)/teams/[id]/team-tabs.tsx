@@ -19,6 +19,7 @@ import {
   ChevronUp,
   Pin,
   Archive,
+  Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,14 @@ import {
   deleteMetricEntry,
 } from "@/lib/actions/metrics";
 import { MetricChart } from "@/components/charts/metric-chart";
+import {
+  ResultsTab,
+  AthleteRaces,
+  type RaceRow,
+  type MeetRow,
+  type OpponentScoreRow,
+} from "./results-tab";
+import { MeetResultsDialog, type DisciplineDTO } from "./meet-results-entry";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -194,6 +203,13 @@ type Team = {
 
 // ─── Root Component ─────────────────────────────────────────
 
+type ResultsData = {
+  disciplines: DisciplineDTO[];
+  rows: RaceRow[];
+  meets: MeetRow[];
+  opponentScores: OpponentScoreRow[];
+};
+
 export function TeamTabs({
   team,
   dashboard,
@@ -201,6 +217,7 @@ export function TeamTabs({
   metricDefinitions,
   teamMetricEntries,
   athleteMetricEntries,
+  results,
 }: {
   team: Team;
   dashboard: DashboardData;
@@ -208,6 +225,7 @@ export function TeamTabs({
   metricDefinitions: MetricDef[];
   teamMetricEntries: MetricEntryType[];
   athleteMetricEntries: MetricEntryType[];
+  results: ResultsData;
 }) {
   return (
     <Tabs defaultValue="dashboard">
@@ -227,6 +245,9 @@ export function TeamTabs({
         <TabsTrigger value="programs" className="gap-1.5">
           <ClipboardList className="size-3.5" /> Programs
         </TabsTrigger>
+        <TabsTrigger value="results" className="gap-1.5">
+          <Timer className="size-3.5" /> Results
+        </TabsTrigger>
         <TabsTrigger value="metrics" className="gap-1.5">
           <TrendingUp className="size-3.5" /> Metrics
         </TabsTrigger>
@@ -245,10 +266,24 @@ export function TeamTabs({
           events={team.events}
           metricDefinitions={metricDefinitions}
           athleteMetricEntries={athleteMetricEntries}
+          resultRows={results.rows}
         />
       </TabsContent>
       <TabsContent value="schedule">
-        <ScheduleTab teamId={team.id} events={team.events} />
+        <ScheduleTab
+          teamId={team.id}
+          events={team.events}
+          disciplines={results.disciplines}
+        />
+      </TabsContent>
+      <TabsContent value="results">
+        <ResultsTab
+          teamId={team.id}
+          disciplines={results.disciplines}
+          rows={results.rows}
+          meets={results.meets}
+          opponentScores={results.opponentScores}
+        />
       </TabsContent>
       <TabsContent value="announcements">
         <AnnouncementsTab
@@ -479,12 +514,14 @@ function RosterTab({
   events,
   metricDefinitions,
   athleteMetricEntries,
+  resultRows,
 }: {
   teamId: string;
   athletes: Athlete[];
   events: TeamEvent[];
   metricDefinitions: MetricDef[];
   athleteMetricEntries: MetricEntryType[];
+  resultRows: RaceRow[];
 }) {
   const router = useRouter();
   const [removing, setRemoving] = useState<string | null>(null);
@@ -600,6 +637,7 @@ function RosterTab({
                     existingEntries={athleteMetricEntries.filter(
                       (e) => e.athlete?.id === a.id
                     )}
+                    raceRows={resultRows.filter((r) => r.athleteId === a.id)}
                   />
                 </div>
               )}
@@ -618,14 +656,16 @@ function AthleteDetailPanel({
   events,
   metricDefinitions,
   existingEntries,
+  raceRows,
 }: {
   athlete: Athlete;
   events: TeamEvent[];
   metricDefinitions: MetricDef[];
   existingEntries: MetricEntryType[];
+  raceRows: RaceRow[];
 }) {
   const [activeSection, setActiveSection] = useState<
-    "info" | "notes" | "metrics"
+    "info" | "notes" | "metrics" | "races"
   >("info");
   const [notes, setNotes] = useState<AthleteNoteType[] | null>(null);
   const loadingNotes = activeSection === "notes" && notes === null;
@@ -654,7 +694,7 @@ function AthleteDetailPanel({
     <div className="p-4 space-y-4">
       {/* Section Toggle */}
       <div className="flex gap-2">
-        {(["info", "notes", "metrics"] as const).map((s) => (
+        {(["info", "notes", "metrics", "races"] as const).map((s) => (
           <Button
             key={s}
             variant={activeSection === s ? "default" : "outline"}
@@ -753,6 +793,9 @@ function AthleteDetailPanel({
           existingEntries={existingEntries}
         />
       )}
+
+      {/* Races Section */}
+      {activeSection === "races" && <AthleteRaces rows={raceRows} />}
     </div>
   );
 }
@@ -1389,9 +1432,11 @@ function AthleteFormDialog({
 function ScheduleTab({
   teamId,
   events,
+  disciplines,
 }: {
   teamId: string;
   events: TeamEvent[];
+  disciplines: DisciplineDTO[];
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -1427,6 +1472,7 @@ function ScheduleTab({
 
   const typeColors: Record<string, string> = {
     PRACTICE: "bg-blue-500/10 text-blue-500",
+    MEET: "bg-red-500/10 text-red-500",
     GAME: "bg-red-500/10 text-red-500",
     MEETING: "bg-yellow-500/10 text-yellow-500",
     TRYOUT: "bg-purple-500/10 text-purple-500",
@@ -1473,6 +1519,13 @@ function ScheduleTab({
         )}
       </div>
       <div className="flex items-center shrink-0">
+        {(e.type === "MEET" || e.type === "GAME") && (
+          <MeetResultsDialog eventId={e.id} disciplines={disciplines}>
+            <Button variant="ghost" size="icon" title="Enter results">
+              <Timer className="size-4" />
+            </Button>
+          </MeetResultsDialog>
+        )}
         <EventFormDialog teamId={teamId} event={e}>
           <Button variant="ghost" size="icon">
             <Edit2 className="size-4" />
@@ -1542,6 +1595,7 @@ function ScheduleTab({
 
 const EVENT_TYPES = [
   { value: "PRACTICE", label: "Practice" },
+  { value: "MEET", label: "Meet" },
   { value: "GAME", label: "Game" },
   { value: "MEETING", label: "Meeting" },
   { value: "TRYOUT", label: "Tryout" },

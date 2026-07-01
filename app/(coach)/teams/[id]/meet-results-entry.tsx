@@ -27,6 +27,7 @@ import {
   saveMeetResults,
   createDiscipline,
   archiveDiscipline,
+  setMeetOpponentScores,
 } from "@/lib/actions/results";
 import type { UnitType, Direction } from "@/lib/results/types";
 
@@ -487,6 +488,123 @@ export function DisciplineManagerDialog({
               {saving ? "Adding…" : "Add discipline"}
             </Button>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Opponent Scores Dialog ─────────────────────────────────
+
+type OpponentEntry = { groupLabel: string; opponentName: string; score: string };
+
+export function OpponentScoresDialog({
+  eventId,
+  existing,
+  children,
+}: {
+  eventId: string;
+  existing: { groupLabel: string; opponentName: string; score: number }[];
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [entries, setEntries] = useState<OpponentEntry[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      setEntries(
+        existing.map((e) => ({
+          groupLabel: e.groupLabel,
+          opponentName: e.opponentName,
+          score: String(e.score),
+        })),
+      );
+    }
+  }, [open, existing]);
+
+  const setEntry = (i: number, patch: Partial<OpponentEntry>) =>
+    setEntries((es) => es.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = entries
+        .filter((e) => e.groupLabel.trim() && e.opponentName.trim() && e.score.trim())
+        .map((e) => ({
+          groupLabel: e.groupLabel.trim(),
+          opponentName: e.opponentName.trim(),
+          score: Number(e.score),
+        }));
+      await setMeetOpponentScores(eventId, { entries: payload });
+      setOpen(false);
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Opponent Scores</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Enter opposing team scores to show a Win/Loss. The group label must match your
+            group (e.g. &ldquo;Varsity Boys&rdquo;).
+          </p>
+          {entries.map((e, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Input
+                placeholder="Varsity Boys"
+                className="flex-1"
+                value={e.groupLabel}
+                onChange={(ev) => setEntry(i, { groupLabel: ev.target.value })}
+              />
+              <Input
+                placeholder="Opponent"
+                className="flex-1"
+                value={e.opponentName}
+                onChange={(ev) => setEntry(i, { opponentName: ev.target.value })}
+              />
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="pts"
+                className="w-16"
+                value={e.score}
+                onChange={(ev) => setEntry(i, { score: ev.target.value })}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 text-destructive"
+                onClick={() => setEntries((es) => es.filter((_, j) => j !== i))}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setEntries((es) => [...es, { groupLabel: "", opponentName: "", score: "" }])
+            }
+          >
+            <Plus className="size-4 mr-1" /> Add opponent
+          </Button>
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? "Saving…" : "Save"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
