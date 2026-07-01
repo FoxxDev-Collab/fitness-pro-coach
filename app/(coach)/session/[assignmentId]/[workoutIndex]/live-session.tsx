@@ -443,7 +443,7 @@ export function LiveSession({
 
             {/* Rest Timer Buttons */}
             {exState.actualSets.length > 0 && ex.type === "weight" && (
-              <div className="flex gap-2 mt-3">
+              <div className="grid grid-cols-2 gap-2 mt-3 sm:grid-cols-4">
                 {[60, 90, 120, 180].map((s: number) => (
                   <Button
                     key={s}

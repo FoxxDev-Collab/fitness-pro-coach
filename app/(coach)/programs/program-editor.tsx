@@ -244,8 +244,8 @@ export function ProgramEditor({
   return (
     <div className="min-h-screen -m-4">
       <header className="bg-card border-b border-border p-4 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-4 min-w-0">
             <Button variant="ghost" size="icon" asChild>
               <Link href="/programs">
                 <ArrowLeft size={20} />
@@ -279,10 +279,10 @@ export function ProgramEditor({
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto p-4 flex gap-4">
+      <div className="max-w-6xl mx-auto p-4 flex flex-col gap-4 md:flex-row">
         {/* Workout Sidebar */}
-        <div className="w-64 shrink-0">
-          <div className="bg-card rounded-xl p-4 sticky top-24">
+        <div className="w-full md:w-64 md:shrink-0">
+          <div className="bg-card rounded-xl p-4 md:sticky md:top-24">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Workouts</h3>
               <Button size="icon" onClick={addWorkout}>
@@ -424,7 +424,7 @@ export function ProgramEditor({
                       />
                     </Button>
                     {showExerciseDropdown && (
-                      <div className="absolute right-0 top-full mt-2 w-80 bg-popover rounded-xl shadow-2xl border border-border z-20 overflow-hidden">
+                      <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-popover rounded-xl shadow-2xl border border-border z-20 overflow-hidden">
                         <div className="p-3 border-b border-border">
                           <Input
                             type="text"
@@ -539,7 +539,7 @@ export function ProgramEditor({
                               </Button>
                             </div>
                             {ex.type === "weight" ? (
-                              <div className="grid grid-cols-4 gap-3">
+                              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                 <div>
                                   <Label className="text-xs">Sets</Label>
                                   <Input

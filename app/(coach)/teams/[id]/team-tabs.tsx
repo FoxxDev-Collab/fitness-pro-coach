@@ -211,7 +211,7 @@ export function TeamTabs({
 }) {
   return (
     <Tabs defaultValue="dashboard">
-      <TabsList className="flex-wrap h-auto gap-1">
+      <TabsList className="w-full flex-wrap h-auto gap-1">
         <TabsTrigger value="dashboard" className="gap-1.5">
           <LayoutDashboard className="size-3.5" /> Dashboard
         </TabsTrigger>

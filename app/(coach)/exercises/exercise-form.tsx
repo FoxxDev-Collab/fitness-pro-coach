@@ -116,18 +116,18 @@ export function ExerciseForm({ exercise }: { exercise?: Exercise }) {
   return (
     <div className="min-h-screen">
       <header className="bg-card border-b border-border p-4 sticky top-0 z-10 -mx-4 -mt-4 mb-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-4 min-w-0">
             <Button variant="ghost" size="icon" asChild>
               <Link href="/exercises">
                 <ArrowLeft size={20} />
               </Link>
             </Button>
-            <h1 className="text-xl font-bold">
+            <h1 className="text-xl font-bold truncate">
               {exercise ? "Edit Exercise" : "New Exercise"}
             </h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" asChild>
               <Link href="/exercises">Cancel</Link>
             </Button>
