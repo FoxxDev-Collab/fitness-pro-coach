@@ -17,6 +17,9 @@ export type AuditAction =
   | "user.invite_admin"
   | "impersonation.start"
   | "impersonation.stop"
+  // Emitted automatically by the Prisma write hook (lib/db.ts) for any mutation
+  // performed while an admin is impersonating another user.
+  | "impersonated.write"
   | "data.export";
 
 export type AuditTargetType = "user" | "client" | "team" | "athlete" | "program" | "system";
