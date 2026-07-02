@@ -14,6 +14,7 @@ import { seasonBests, bestOf } from "@/lib/results/records";
 import { computeTeamScore } from "@/lib/results/scoring";
 import { formatValue, formatTime } from "@/lib/results/format";
 import { ResultTrendChart } from "@/components/charts/result-trend-chart";
+import { SplitBreakdown } from "@/components/results/split-breakdown";
 import type { EngineResult, UnitType, Direction } from "@/lib/results/types";
 
 export type RaceRow = {
@@ -28,6 +29,7 @@ export type RaceRow = {
   event: { id: string; title: string; startTime: string | Date; type: string };
   athlete: { id: string; name: string; gender: string | null };
   discipline: { id: string; name: string; unitType: UnitType; direction: Direction };
+  splits: { order: number; label: string | null; value: number }[];
 };
 
 export type MeetRow = { id: string; title: string; startTime: string | Date; type: string };
@@ -310,6 +312,25 @@ export function AthleteRaces({ rows }: { rows: RaceRow[] }) {
               data={chartData}
               height={140}
             />
+            {[...dRows]
+              .filter((r) => r.splits.length >= 2)
+              .sort(
+                (a, b) =>
+                  new Date(a.event.startTime).getTime() -
+                  new Date(b.event.startTime).getTime(),
+              )
+              .map((r) => (
+                <div key={r.id} className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {r.event.title} ·{" "}
+                    {new Date(r.event.startTime).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                  <SplitBreakdown splits={r.splits} />
+                </div>
+              ))}
           </div>
         );
       })}

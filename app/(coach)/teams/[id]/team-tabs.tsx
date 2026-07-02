@@ -84,6 +84,7 @@ import {
   type OpponentScoreRow,
 } from "./results-tab";
 import { MeetResultsDialog, type DisciplineDTO } from "./meet-results-entry";
+import { formatTime } from "@/lib/results/format";
 import { StatTile } from "@/components/analytics/stat-tile";
 import { ChartCard } from "@/components/analytics/chart-card";
 import { Leaderboard, type LeaderboardRow } from "@/components/analytics/leaderboard";
@@ -166,9 +167,16 @@ type MetricDef = {
   id: string;
   name: string;
   unit: string;
+  unitType: string;
   scope: string;
   description: string | null;
 };
+
+/** Format a metric value: mm:ss for TIME metrics, else the raw value + unit. */
+function fmtMetric(value: number, unitType: string, unit: string): string {
+  if (unitType === "TIME") return formatTime(value);
+  return unit ? `${value} ${unit}` : String(value);
+}
 
 type MetricEntryType = {
   id: string;
@@ -468,7 +476,7 @@ function DashboardTab({
             .map((r) => ({
               id: r.id,
               name: r.name,
-              value: `${r.value} ${def.unit}`,
+              value: fmtMetric(r.value, def.unitType, def.unit),
               delta:
                 r.delta == null
                   ? undefined
@@ -2284,7 +2292,7 @@ function MetricExplorer({
         .map((r) => ({
           id: r.id,
           name: r.name,
-          value: `${r.value} ${current.def.unit}`,
+          value: fmtMetric(r.value, current.def.unitType, current.def.unit),
           delta:
             r.delta == null
               ? undefined
@@ -2736,7 +2744,7 @@ function MetricsTab({
                       {entry.metricDefinition.name}
                     </span>
                     <Badge variant="outline" className="text-xs">
-                      {entry.value} {entry.metricDefinition.unit}
+                      {fmtMetric(entry.value, entry.metricDefinition.unitType, entry.metricDefinition.unit)}
                     </Badge>
                     {entry.athlete && (
                       <Badge variant="secondary" className="text-xs">

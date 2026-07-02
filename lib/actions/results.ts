@@ -289,6 +289,7 @@ export async function getTeamResultsOverview(teamId: string) {
         event: { select: { id: true, title: true, startTime: true, type: true } },
         athlete: { select: { id: true, name: true, gender: true } },
         metricDefinition: { select: { id: true, name: true, unitType: true, direction: true } },
+        splits: { orderBy: { order: "asc" } },
       },
     }),
     db.teamEvent.findMany({
@@ -319,6 +320,7 @@ export async function getTeamResultsOverview(teamId: string) {
         unitType: r.metricDefinition.unitType as UnitType,
         direction: (r.metricDefinition.direction ?? "LOWER_BETTER") as Direction,
       },
+      splits: r.splits.map((s) => ({ order: s.order, label: s.label, value: s.value })),
     }));
 
   return { disciplines, rows, meets, opponentScores };
@@ -366,5 +368,6 @@ export async function getAthleteRaces(athleteId: string) {
         unitType: r.metricDefinition.unitType as UnitType,
         direction: (r.metricDefinition.direction ?? "LOWER_BETTER") as Direction,
       },
+      splits: r.splits.map((s) => ({ order: s.order, label: s.label, value: s.value })),
     }));
 }
