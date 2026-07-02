@@ -13,9 +13,23 @@ import {
 } from "@/components/ui/dialog";
 import { deleteTeam } from "@/lib/actions/teams";
 
-export function DeleteTeamButton({ id, name }: { id: string; name: string }) {
+export function DeleteTeamButton({
+  id,
+  name,
+  open: openProp,
+  onOpenChange,
+}: {
+  id: string;
+  name: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) =>
+    isControlled ? onOpenChange?.(o) : setOpenState(o);
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -31,11 +45,13 @@ export function DeleteTeamButton({ id, name }: { id: string; name: string }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="text-destructive">
-          <Trash2 className="size-4" />
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" className="text-destructive">
+            <Trash2 className="size-4" />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Delete Team</DialogTitle>

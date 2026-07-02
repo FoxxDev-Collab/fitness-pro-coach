@@ -1,11 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TeamFormDialog } from "../team-form-dialog";
-import { DeleteTeamButton } from "./delete-button";
-import { RolloverDialog } from "./rollover-dialog";
+import { TeamHeaderActions } from "./team-header-actions";
 import { TeamTabs } from "./team-tabs";
 import { getTeam, getTeamDashboard } from "@/lib/actions/teams";
 import { getTeamNotes } from "@/lib/actions/team-notes";
@@ -51,41 +48,27 @@ export default async function TeamDetailPage({
         </Link>
       </Button>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl">{team.name}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {team.sport && `${team.sport}`}
-                {team.sport && team.season && " · "}
-                {team.season && team.season}
-                {!team.sport && !team.season && "No sport or season set"}
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap justify-end">
-              {!team.archivedAt && (
-                <RolloverDialog
-                  teamId={team.id}
-                  teamName={team.name}
-                  teamSport={team.sport}
-                />
-              )}
-              <TeamFormDialog team={team}>
-                <Button variant="outline" size="icon">
-                  <Edit2 className="size-4" />
-                </Button>
-              </TeamFormDialog>
-              <DeleteTeamButton id={team.id} name={team.name} />
-            </div>
+      <div className="rounded-lg border bg-card px-4 py-3 sm:px-6 sm:py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold sm:text-xl">
+              {team.name}
+            </h1>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
+              {team.sport && `${team.sport}`}
+              {team.sport && team.season && " · "}
+              {team.season && team.season}
+              {!team.sport && !team.season && "No sport or season set"}
+            </p>
           </div>
-        </CardHeader>
+          <TeamHeaderActions team={team} />
+        </div>
         {team.description && (
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{team.description}</p>
-          </CardContent>
+          <p className="mt-3 hidden text-sm text-muted-foreground sm:block">
+            {team.description}
+          </p>
         )}
-      </Card>
+      </div>
 
       <TeamTabs
         team={{ ...team, notes }}

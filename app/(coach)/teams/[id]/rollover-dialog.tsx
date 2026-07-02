@@ -20,13 +20,21 @@ export function RolloverDialog({
   teamId,
   teamName,
   teamSport,
+  open: openProp,
+  onOpenChange,
 }: {
   teamId: string;
   teamName: string;
   teamSport: string | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) =>
+    isControlled ? onOpenChange?.(o) : setOpenState(o);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: teamName,
@@ -56,11 +64,13 @@ export function RolloverDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <RefreshCw className="size-4 mr-1.5" /> New Season
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <RefreshCw className="size-4 mr-1.5" /> New Season
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Start New Season</DialogTitle>

@@ -26,12 +26,20 @@ type Team = {
 export function TeamFormDialog({
   team,
   children,
+  open: openProp,
+  onOpenChange,
 }: {
   team?: Team;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) =>
+    isControlled ? onOpenChange?.(o) : setOpenState(o);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: team?.name || "",
@@ -73,7 +81,7 @@ export function TeamFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{team ? "Edit Team" : "Create Team"}</DialogTitle>
