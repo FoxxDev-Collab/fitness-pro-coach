@@ -84,7 +84,8 @@ import {
   type OpponentScoreRow,
 } from "./results-tab";
 import { MeetResultsDialog, type DisciplineDTO } from "./meet-results-entry";
-import { formatTime } from "@/lib/results/format";
+import { formatTime, formatValue } from "@/lib/results/format";
+import type { UnitType } from "@/lib/results/types";
 import { StatTile } from "@/components/analytics/stat-tile";
 import { ChartCard } from "@/components/analytics/chart-card";
 import { Leaderboard, type LeaderboardRow } from "@/components/analytics/leaderboard";
@@ -168,6 +169,7 @@ type MetricDef = {
   name: string;
   unit: string;
   unitType: string;
+  direction: string | null;
   scope: string;
   description: string | null;
 };
@@ -377,8 +379,9 @@ function DashboardTab({
   const entriesCount = athleteMetricEntries.length + teamMetricEntries.length;
 
   // Featured athlete metrics — those with recorded data, richest series first.
+  // Disciplines (direction set) are excluded here; they get the race block below.
   const featured = metricDefinitions
-    .filter((d) => d.scope === "ATHLETE")
+    .filter((d) => d.scope === "ATHLETE" && !d.direction)
     .map((def) => ({
       def,
       series: athleteSeriesForMetric(athleteMetricEntries, def.id),
@@ -389,6 +392,58 @@ function DashboardTab({
         b.series.reduce((n, s) => n + s.points.length, 0) -
         a.series.reduce((n, s) => n + s.points.length, 0),
     )
+    .slice(0, 2);
+
+  // Race performance — per-discipline PR board + progression from results.
+  const raceBlocks = results.disciplines
+    .map((d) => {
+      const dRows = results.rows.filter((r) => r.disciplineId === d.id && !r.dnf);
+      if (dRows.length === 0) return null;
+      const byAthlete = new Map<
+        string,
+        { id: string; name: string; points: { date: string; ts: number; value: number }[] }
+      >();
+      for (const r of dRows) {
+        const a =
+          byAthlete.get(r.athleteId) ??
+          { id: r.athleteId, name: r.athlete.name, points: [] };
+        a.points.push({
+          date: fmtShortDate(r.event.startTime),
+          ts: new Date(r.event.startTime).getTime(),
+          value: r.value,
+        });
+        byAthlete.set(r.athleteId, a);
+      }
+      const series = [...byAthlete.values()].map((a) => ({
+        ...a,
+        points: [...a.points].sort((x, y) => x.ts - y.ts),
+      }));
+      const lower = d.direction === "LOWER_BETTER";
+      const prRows: LeaderboardRow[] = series
+        .map((a) => ({
+          id: a.id,
+          name: a.name,
+          best: a.points.reduce(
+            (m, p) => (lower ? Math.min(m, p.value) : Math.max(m, p.value)),
+            a.points[0].value,
+          ),
+        }))
+        .sort((x, y) => (lower ? x.best - y.best : y.best - x.best))
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          value: formatValue(p.best, d.unitType as UnitType),
+        }));
+      const distinctDates = new Set(dRows.map((r) => new Date(r.event.startTime).getTime())).size;
+      return {
+        d,
+        series,
+        wide: toWideSeries(series),
+        prRows,
+        hasTrend: distinctDates >= 2 && series.length > 0,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
     .slice(0, 2);
 
   const formatDate = (d: Date | null) => {
@@ -499,6 +554,8 @@ function DashboardTab({
                     data={wide}
                     series={chartSeries}
                     unit={def.unit}
+                    unitType={def.unitType}
+                    invertY={def.unitType === "TIME"}
                     showAverage
                     height={240}
                   />
@@ -510,6 +567,50 @@ function DashboardTab({
             </div>
           );
         })
+      )}
+
+      {/* Race performance */}
+      {raceBlocks.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Race Performance</h3>
+          {raceBlocks.map(({ d, series, wide, prRows, hasTrend }) => {
+            const chartSeries: ChartSeries[] = series.map((s) => ({
+              key: s.id,
+              name: s.name,
+            }));
+            return (
+              <div key={d.id} className="grid gap-4 lg:grid-cols-3">
+                <ChartCard
+                  className="lg:col-span-2"
+                  title={`${d.name} — times`}
+                  subtitle="Per-athlete progression"
+                >
+                  {hasTrend ? (
+                    <>
+                      <ChartLegend series={chartSeries} />
+                      <div className="mt-2">
+                        <MultiSeriesTrendChart
+                          data={wide}
+                          series={chartSeries}
+                          unitType={d.unitType}
+                          invertY={d.direction === "LOWER_BETTER"}
+                          height={220}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Need 2+ meets to plot progression.
+                    </p>
+                  )}
+                </ChartCard>
+                <ChartCard title="Season bests" subtitle={d.name}>
+                  <Leaderboard rows={prRows} emptyLabel="No results yet" />
+                </ChartCard>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Weekly Activity Chart */}
@@ -2334,6 +2435,8 @@ function MetricExplorer({
               data={wide}
               series={chartSeries}
               unit={current.def.unit}
+              unitType={current.def.unitType}
+              invertY={current.def.unitType === "TIME"}
               showAverage={isAthlete}
               height={260}
             />

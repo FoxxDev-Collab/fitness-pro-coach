@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { formatTime } from "@/lib/results/format";
 
 // Distinct hues for per-athlete lines. Lime (--primary) is deliberately
 // reserved for the bold team-average line so it always reads as "the team".
@@ -32,6 +33,7 @@ export function MultiSeriesTrendChart({
   height = 240,
   showAverage = false,
   invertY = false,
+  unitType,
 }: {
   data: Record<string, number | string>[];
   series: ChartSeries[];
@@ -41,6 +43,8 @@ export function MultiSeriesTrendChart({
   showAverage?: boolean;
   /** Lower-is-better metrics (e.g. race times) read better with Y inverted. */
   invertY?: boolean;
+  /** When "TIME", axis + tooltip values render as mm:ss instead of raw seconds. */
+  unitType?: string;
 }) {
   if (data.length < 2) {
     return (
@@ -52,6 +56,9 @@ export function MultiSeriesTrendChart({
 
   const nameByKey = new Map(series.map((s) => [s.key, s.name]));
   nameByKey.set("__avg", "Team average");
+  const isTime = unitType === "TIME";
+  const fmtVal = (v: number | string) =>
+    isTime ? formatTime(Number(v)) : `${v}${unit ? ` ${unit}` : ""}`;
 
   return (
     <div className="w-full" style={{ height }}>
@@ -72,7 +79,8 @@ export function MultiSeriesTrendChart({
             className="fill-muted-foreground"
             tickLine={false}
             axisLine={false}
-            width={44}
+            width={isTime ? 52 : 44}
+            tickFormatter={isTime ? (v) => formatTime(Number(v)) : undefined}
           />
           <Tooltip
             contentStyle={{
@@ -83,7 +91,7 @@ export function MultiSeriesTrendChart({
               fontSize: 12,
             }}
             formatter={(value, key) => [
-              `${value}${unit ? ` ${unit}` : ""}`,
+              fmtVal(value as number | string),
               nameByKey.get(String(key)) ?? String(key),
             ]}
           />
