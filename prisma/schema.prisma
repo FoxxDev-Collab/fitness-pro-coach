@@ -59,11 +59,8 @@ model User {
   teamNotes          TeamNote[]         @relation("CoachTeamNotes")
   athleteNotes       AthleteNote[]      @relation("CoachAthleteNotes")
 
-  // Coach metrics
+  // Coach metrics (races/disciplines are metrics with a direction)
   metricDefinitions  MetricDefinition[] @relation("CoachMetrics")
-
-  // Coach race disciplines
-  disciplines        Discipline[]       @relation("CoachDisciplines")
 }
 
 model PasswordResetToken {
@@ -445,7 +442,6 @@ model Athlete {
   assignments    Assignment[]
   athleteNotes   AthleteNote[]
   metricEntries  MetricEntry[]  @relation("AthleteMetricEntries")
-  results        RaceResult[]
 
   @@index([teamId])
 }
@@ -483,7 +479,6 @@ model TeamEvent {
 
   team           Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
   metricEntries  MetricEntry[]       @relation("EventMetricEntries")
-  results        RaceResult[]
   opponentScores MeetOpponentScore[]
 
   @@index([teamId])
@@ -553,19 +548,45 @@ enum MetricScope {
   ATHLETE
 }
 
-model MetricDefinition {
-  id          String       @id @default(cuid())
-  coachId     String
-  name        String
-  unit        String
-  scope       MetricScope
-  description String?
-  archived    Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+// The unit family for a metric. Drives value formatting (mm:ss vs. 6.20 m …).
+enum MetricUnit {
+  TIME
+  DISTANCE
+  WEIGHT
+  POINTS
+}
 
-  coach       User         @relation("CoachMetrics", fields: [coachId], references: [id], onDelete: Cascade)
-  entries     MetricEntry[]
+// Whether a lower or higher value is "better" — set only on metrics that have a
+// personal-record notion (races/disciplines). `null` = no ranking (e.g. weight).
+enum ResultDirection {
+  LOWER_BETTER
+  HIGHER_BETTER
+}
+
+// Competition status for an event-tied entry. FINISHED for ordinary measurements.
+enum ResultStatus {
+  FINISHED
+  DNF
+  DNS
+  DQ
+}
+
+model MetricDefinition {
+  id             String           @id @default(cuid())
+  coachId        String
+  name           String
+  unit           String
+  scope          MetricScope
+  unitType       MetricUnit       @default(POINTS)
+  direction      ResultDirection?
+  distanceMeters Int?
+  description    String?
+  archived       Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  coach          User             @relation("CoachMetrics", fields: [coachId], references: [id], onDelete: Cascade)
+  entries        MetricEntry[]
 
   @@index([coachId])
 }
@@ -577,6 +598,9 @@ model MetricEntry {
   athleteId            String?
   eventId              String?
   value                Float
+  place                Int?
+  squad                String?
+  status               ResultStatus     @default(FINISHED)
   notes                String?
   date                 DateTime
   createdAt            DateTime         @default(now())
@@ -585,7 +609,9 @@ model MetricEntry {
   team                 Team?            @relation("TeamMetricEntries", fields: [teamId], references: [id], onDelete: Cascade)
   athlete              Athlete?         @relation("AthleteMetricEntries", fields: [athleteId], references: [id], onDelete: Cascade)
   event                TeamEvent?       @relation("EventMetricEntries", fields: [eventId], references: [id], onDelete: SetNull)
+  splits               Split[]
 
+  @@unique([eventId, athleteId, metricDefinitionId])
   @@index([metricDefinitionId])
   @@index([teamId])
   @@index([athleteId])
@@ -593,69 +619,20 @@ model MetricEntry {
 }
 
 // ─── Race Results & PR Engine ──────────────────────────────
-
-enum DisciplineUnit {
-  TIME
-  DISTANCE
-  WEIGHT
-  POINTS
-}
-
-enum ResultDirection {
-  LOWER_BETTER
-  HIGHER_BETTER
-}
-
-model Discipline {
-  id             String          @id @default(cuid())
-  coachId        String
-  name           String
-  unitType       DisciplineUnit
-  direction      ResultDirection
-  distanceMeters Int?
-  archived       Boolean         @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  coach          User            @relation("CoachDisciplines", fields: [coachId], references: [id], onDelete: Cascade)
-  results        RaceResult[]
-
-  @@index([coachId])
-}
-
-model RaceResult {
-  id           String   @id @default(cuid())
-  eventId      String
-  athleteId    String
-  disciplineId String
-  value        Float
-  place        Int?
-  squad        String?
-  dnf          Boolean  @default(false)
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  event        TeamEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  athlete      Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  splits       Split[]
-
-  @@unique([eventId, athleteId, disciplineId])
-  @@index([eventId])
-  @@index([athleteId])
-  @@index([disciplineId])
-}
+// Disciplines are `MetricDefinition`s with a `direction`; race results are
+// `MetricEntry`s tied to a `TeamEvent`. Only the splits + meet-scoring tables
+// remain result-specific. Enums `MetricUnit`/`ResultDirection`/`ResultStatus`
+// are declared alongside the metric models above.
 
 model Split {
-  id       String     @id @default(cuid())
-  resultId String
-  order    Int
-  label    String?
-  value    Float
-  result   RaceResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  metricEntryId String
+  order         Int
+  label         String?
+  value         Float
+  metricEntry   MetricEntry @relation(fields: [metricEntryId], references: [id], onDelete: Cascade)
 
-  @@index([resultId])
+  @@index([metricEntryId])
 }
 
 model MeetOpponentScore {

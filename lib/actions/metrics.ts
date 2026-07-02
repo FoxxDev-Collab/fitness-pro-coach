@@ -252,8 +252,10 @@ export async function getAthleteMetricSummary(athleteId: string) {
   });
   if (!athlete) throw new Error("Athlete not found");
 
+  // Exclude disciplines (metrics with a direction) — race results surface via
+  // the results views, not as mis-ranked "metrics" in the athlete panel.
   const definitions = await db.metricDefinition.findMany({
-    where: { coachId, scope: "ATHLETE", archived: false },
+    where: { coachId, scope: "ATHLETE", archived: false, direction: null },
   });
 
   const summaries = await Promise.all(

@@ -354,7 +354,8 @@ function DashboardTab({
   athleteMetricEntries: MetricEntryType[];
   teamMetricEntries: MetricEntryType[];
 }) {
-  const nowTs = Date.now();
+  // Stable "now" captured once on mount — Date.now() during render is impure.
+  const [nowTs] = useState(() => Date.now());
   const upcoming = events
     .filter((e) => new Date(e.startTime).getTime() >= nowTs)
     .sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime));
