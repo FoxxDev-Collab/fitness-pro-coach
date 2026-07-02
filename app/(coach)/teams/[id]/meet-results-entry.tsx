@@ -205,6 +205,14 @@ export function MeetResultsDialog({
               </p>
             ) : (
               <div className="space-y-2">
+                <div className="hidden sm:flex items-center gap-2 px-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className="min-w-0 flex-1">Athlete</span>
+                  <span className="w-24">{isTime ? "Time" : "Mark"}</span>
+                  <span className="w-16">Place</span>
+                  <span className="w-24">Squad</span>
+                  <span className="w-[52px]">DNF</span>
+                  {isTime && <span className="w-8" />}
+                </div>
                 {roster.map((a) => {
                   const row = rows[a.id] ?? blankRow();
                   return (

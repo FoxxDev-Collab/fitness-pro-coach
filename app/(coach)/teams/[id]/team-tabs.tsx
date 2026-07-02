@@ -1344,67 +1344,75 @@ function AthleteMetricsSection({
       ) : (
         <>
           {/* Record Entry */}
-          <div className="space-y-2 p-3 rounded-lg border bg-background">
+          <div className="space-y-3 p-4 rounded-lg border bg-background">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Record Entry
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="col-span-2">
-                <Select
-                  value={selectedMetricId}
-                  onValueChange={setSelectedMetricId}
-                >
+            <div className="space-y-1.5">
+              <Label>Metric</Label>
+              <Select
+                value={selectedMetricId}
+                onValueChange={setSelectedMetricId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select metric..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {metricDefinitions.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} ({m.unit})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Value</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 4.85"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+            </div>
+            {events.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Link to Event (optional)</Label>
+                <Select value={eventId} onValueChange={setEventId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select metric..." />
+                    <SelectValue placeholder="No event" />
                   </SelectTrigger>
                   <SelectContent>
-                    {metricDefinitions.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name} ({m.unit})
+                    <SelectItem value="none">No event</SelectItem>
+                    {events.map((ev) => (
+                      <SelectItem key={ev.id} value={ev.id}>
+                        {ev.title} —{" "}
+                        {new Date(ev.startTime).toLocaleDateString()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            )}
+            <div className="space-y-1.5">
+              <Label>Notes (optional)</Label>
               <Input
-                type="number"
-                placeholder="Value"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
+                placeholder="Any notes about this entry"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
               />
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-              {events.length > 0 && (
-                <div className="col-span-2">
-                  <Select value={eventId} onValueChange={setEventId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Link to event (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No event</SelectItem>
-                      {events.map((ev) => (
-                        <SelectItem key={ev.id} value={ev.id}>
-                          {ev.title} —{" "}
-                          {new Date(ev.startTime).toLocaleDateString()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div className="col-span-2">
-                <Input
-                  placeholder="Notes (optional)"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
             </div>
             <Button
-              size="sm"
               onClick={handleRecord}
               disabled={!selectedMetricId || !value || saving}
               className="w-full"
