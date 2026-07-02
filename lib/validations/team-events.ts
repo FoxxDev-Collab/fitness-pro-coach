@@ -11,6 +11,7 @@ const optionalString = (max: number) =>
 export const eventTypeSchema = z.enum([
   "PRACTICE",
   "GAME",
+  "MEET",
   "MEETING",
   "TRYOUT",
   "CAMP",
