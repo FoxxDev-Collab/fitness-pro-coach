@@ -99,6 +99,12 @@ export async function login(formData: FormData) {
   if (user.mfaEnabled && user.mfaSecret) {
     if (!mfaCode) return { error: "MFA_REQUIRED" };
 
+    // Dedicated, tight limiter for TOTP verification (per IP + account). The
+    // outer login limiter is coarser and no-ops without Upstash; this caps
+    // online brute-forcing of the 6-digit code even after a valid password.
+    const mfaRl = await rateLimitByIp("mfa-verify", 5, "10 m", email);
+    if (!mfaRl.ok) return { error: tooManyRequestsMessage(mfaRl.retryAfterSeconds) };
+
     const totp = new OTPAuth.TOTP({
       secret: OTPAuth.Secret.fromBase32(user.mfaSecret),
       algorithm: "SHA1",
@@ -239,9 +245,14 @@ export async function resetPassword(formData: FormData) {
 
   const hashed = await bcrypt.hash(password, 12);
 
+  // Clicking the emailed reset link proves ownership of the address, so this is
+  // also a valid email-verification signal. Setting emailVerified here means an
+  // account left unverified (e.g. a signup that never confirmed, or one an
+  // attacker created to squat someone's email) can always be recovered via
+  // "forgot password" — otherwise it would be permanently unable to log in.
   await db.user.update({
     where: { email: record.email },
-    data: { password: hashed },
+    data: { password: hashed, emailVerified: new Date() },
   });
 
   await db.passwordResetToken.update({
@@ -408,7 +419,16 @@ export async function acceptInvite(formData: FormData) {
   const hashed = await bcrypt.hash(password, 12);
 
   if (user) {
-    // Existing User row (e.g. a stale signup attempt). The invite link itself
+    // Never let a client invite take over or silently downgrade an existing
+    // COACH/ADMIN account that happens to share this email. Invites only ever
+    // provision CLIENT accounts.
+    if (user.role !== "CLIENT") {
+      return {
+        error:
+          "An account with this email already exists. Please log in with that account instead.",
+      };
+    }
+    // Existing CLIENT row (e.g. a stale signup attempt). The invite link itself
     // proves email ownership, so set the password the client just chose and
     // mark them verified.
     await db.user.update({

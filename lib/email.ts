@@ -13,10 +13,27 @@ function getResend() {
 const emailFrom = () => process.env.EMAIL_FROM || "Praevio <noreply@praevio.app>";
 const baseUrl = () => process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000";
 
+/**
+ * Escape user-controlled text before interpolating it into email HTML. Names,
+ * note/announcement bodies, event titles, etc. originate from coach input and
+ * would otherwise let a malicious/compromised coach inject arbitrary HTML or
+ * links into mail sent from our verified domain. Apply at every HTML
+ * interpolation of untrusted text (NOT to the Subject header, which Resend
+ * encodes, and NOT to app-generated URLs/tokens).
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function emailWrapper(title: string, body: string) {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-      <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">${title}</h2>
+      <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">${escapeHtml(title)}</h2>
       ${body}
       <p style="color: #9ca3af; font-size: 12px; margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
         Praevio
@@ -95,7 +112,7 @@ export async function sendProgramAssignedEmail(
       "New Program Assigned",
       `
         <p style="color: #6b7280; margin-bottom: 24px;">
-          Hey ${clientName}, ${coachName} has assigned you a new program: <strong>${programName}</strong>.
+          Hey ${escapeHtml(clientName)}, ${escapeHtml(coachName)} has assigned you a new program: <strong>${escapeHtml(programName)}</strong>.
           Log in to start your workouts!
         </p>
         <a href="${baseUrl()}/dashboard" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
@@ -119,10 +136,10 @@ export async function sendNoteAddedEmail(
       "New Note from Your Coach",
       `
         <p style="color: #6b7280; margin-bottom: 16px;">
-          Hey ${clientName}, ${coachName} left you a note:
+          Hey ${escapeHtml(clientName)}, ${escapeHtml(coachName)} left you a note:
         </p>
         <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #374151;">${notePreview}</p>
+          <p style="margin: 0; color: #374151;">${escapeHtml(notePreview)}</p>
         </div>
         <a href="${baseUrl()}/dashboard" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
           View Dashboard
@@ -150,7 +167,7 @@ export async function sendSessionCompletedEmail(
       "Session Completed",
       `
         <p style="color: #6b7280; margin-bottom: 24px;">
-          ${clientName} just completed <strong>${workoutName}</strong> on ${dateStr}.
+          ${escapeHtml(clientName)} just completed <strong>${escapeHtml(workoutName)}</strong> on ${dateStr}.
         </p>
         <a href="${baseUrl()}/clients" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
           View Client Progress
@@ -180,7 +197,7 @@ export async function sendTeamEventEmail(
     minute: "2-digit",
   });
   const locationLine = location
-    ? `<p style="color: #6b7280; margin: 4px 0;">📍 ${location}</p>`
+    ? `<p style="color: #6b7280; margin: 4px 0;">📍 ${escapeHtml(location)}</p>`
     : "";
 
   await send(
@@ -190,10 +207,10 @@ export async function sendTeamEventEmail(
       `${eventType.charAt(0) + eventType.slice(1).toLowerCase()} Scheduled`,
       `
         <p style="color: #6b7280; margin-bottom: 16px;">
-          <strong>${teamName}</strong> has a new event:
+          <strong>${escapeHtml(teamName)}</strong> has a new event:
         </p>
         <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <p style="margin: 0 0 4px; font-weight: 600; color: #111827;">${eventTitle}</p>
+          <p style="margin: 0 0 4px; font-weight: 600; color: #111827;">${escapeHtml(eventTitle)}</p>
           <p style="color: #6b7280; margin: 4px 0;">📅 ${dateStr} at ${timeStr}</p>
           ${locationLine}
         </div>
@@ -217,10 +234,10 @@ export async function sendTeamAnnouncementEmail(
       subject,
       `
         <p style="color: #6b7280; margin-bottom: 16px;">
-          Announcement from <strong>${teamName}</strong>:
+          Announcement from <strong>${escapeHtml(teamName)}</strong>:
         </p>
         <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #374151; white-space: pre-wrap;">${body}</p>
+          <p style="margin: 0; color: #374151; white-space: pre-wrap;">${escapeHtml(body)}</p>
         </div>
       `
     ),
@@ -236,7 +253,7 @@ export async function sendInviteEmail(to: string, inviteUrl: string, coachName: 
       "You're invited to Praevio",
       `
         <p style="color: #6b7280; margin-bottom: 24px;">
-          ${coachName} has invited you to join as a client. Set up your account to view your workout programs and track your progress.
+          ${escapeHtml(coachName)} has invited you to join as a client. Set up your account to view your workout programs and track your progress.
         </p>
         <a href="${inviteUrl}" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
           Set Up Your Account
@@ -258,7 +275,7 @@ export async function sendAdminInviteEmail(to: string, token: string, inviterNam
       "Praevio admin invitation",
       `
         <p style="color: #6b7280; margin-bottom: 24px;">
-          ${inviterName} has invited you to administer the Praevio platform. Click below to set your password and activate your admin account.
+          ${escapeHtml(inviterName)} has invited you to administer the Praevio platform. Click below to set your password and activate your admin account.
         </p>
         <a href="${url}" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
           Activate admin account

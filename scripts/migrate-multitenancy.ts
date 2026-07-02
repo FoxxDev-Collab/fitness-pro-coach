@@ -40,8 +40,9 @@ async function main() {
         emailVerified: new Date(),
       },
     });
-    console.log(`Created coach: ${coachEmail} (password: ${coachPassword})`);
-    console.log("  ⚠ Change this password immediately!\n");
+    console.log(`Created coach: ${coachEmail}`);
+    console.log("  Password: set via DEFAULT_COACH_PASSWORD env (not printed).");
+    console.log("  ⚠ Log in and change this password immediately!\n");
   } else {
     console.log(`Coach already exists: ${coachEmail}\n`);
   }
@@ -85,8 +86,9 @@ async function main() {
         emailVerified: new Date(),
       },
     });
-    console.log(`\nCreated admin: ${adminEmail} (password: ${adminPassword})`);
-    console.log("  ⚠ Change this password immediately!");
+    console.log(`\nCreated admin: ${adminEmail}`);
+    console.log("  Password: set via ADMIN_PASSWORD env (not printed).");
+    console.log("  ⚠ Log in and change this password immediately!");
   } else {
     console.log(`\nAdmin already exists: ${adminEmail}`);
   }
