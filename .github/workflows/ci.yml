@@ -24,7 +24,7 @@ jobs:
     name: Lint · Typecheck · Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -54,7 +54,7 @@ jobs:
     # PRs; this is an at-a-glance signal on every run.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
