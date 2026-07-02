@@ -1,0 +1,33 @@
+version: 2
+
+updates:
+  # ── npm dependencies ────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+    open-pull-requests-limit: 10
+    # Batch the low-risk churn into single PRs so patch/minor bumps don't spam
+    # the queue; majors still come as individual PRs for careful review.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-minor-patch:
+        dependency-type: production
+        update-types: [minor, patch]
+    labels:
+      - dependencies
+
+  # ── GitHub Actions used in the workflows above ──────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+    labels:
+      - dependencies
+      - github-actions
