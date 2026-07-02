@@ -2,8 +2,14 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { headers } from "next/headers";
 
-const hasUpstash =
-  !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+// Accept either the native Upstash REST env names or the KV_REST_API_* names
+// that Vercel's Upstash Marketplace integration injects, so it works however
+// the Redis store was provisioned.
+const redisUrl =
+  process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const redisToken =
+  process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+const hasUpstash = !!redisUrl && !!redisToken;
 
 const isProd = process.env.NODE_ENV === "production";
 // When Upstash is unconfigured, rate limiting can't enforce. By default we
@@ -12,16 +18,17 @@ const isProd = process.env.NODE_ENV === "production";
 // do that only once Upstash is actually provisioned, or you'll lock out auth.
 const strictMode = process.env.RATE_LIMIT_STRICT === "true";
 
-const redis = hasUpstash ? Redis.fromEnv() : null;
+const redis =
+  redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 
 // Cold-start warning: in production a missing Upstash config silently disables
 // brute-force protection on login / password reset / MFA. Surface it loudly so
 // it shows up in Vercel logs / Sentry rather than passing unnoticed.
 if (isProd && !hasUpstash) {
   console.error(
-    "[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set — " +
-      "rate limiting is DISABLED in production. Provision Upstash Redis and set " +
-      "RATE_LIMIT_STRICT=true to fail closed.",
+    "[rate-limit] No Redis configured (UPSTASH_REDIS_REST_URL/TOKEN or " +
+      "KV_REST_API_URL/TOKEN) — rate limiting is DISABLED in production. " +
+      "Connect an Upstash store and set RATE_LIMIT_STRICT=true to fail closed.",
   );
 }
 
