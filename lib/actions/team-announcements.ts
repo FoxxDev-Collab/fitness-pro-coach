@@ -43,7 +43,7 @@ export async function createAnnouncement(teamId: string, input: CreateAnnounceme
 
   if (data.notifyParents !== false) {
     try {
-      await sendAnnouncementEmails(safeTeamId, team.name, data.subject, data.body);
+      await sendAnnouncementEmails(announcement.id, safeTeamId, team.name, data.subject, data.body);
     } catch (e) {
       console.error("Failed to send announcement emails:", e);
     }
@@ -69,6 +69,7 @@ export async function deleteAnnouncement(id: string) {
 }
 
 async function sendAnnouncementEmails(
+  announcementId: string,
   teamId: string,
   teamName: string,
   subject: string,
@@ -80,15 +81,22 @@ async function sendAnnouncementEmails(
     select: { email: true, parentEmail: true },
   });
 
+  // Normalize before deduping (see team-events.ts).
   const emails = new Set<string>();
   for (const a of athletes) {
-    if (a.email) emails.add(a.email);
-    if (a.parentEmail) emails.add(a.parentEmail);
+    if (a.email) emails.add(a.email.trim().toLowerCase());
+    if (a.parentEmail) emails.add(a.parentEmail.trim().toLowerCase());
   }
 
   for (const email of emails) {
     try {
-      await sendTeamAnnouncementEmail(email, teamName, subject, body);
+      await sendTeamAnnouncementEmail(
+        email,
+        teamName,
+        subject,
+        body,
+        `announcement:${announcementId}:${email}`,
+      );
     } catch (e) {
       console.error(`Failed to send announcement email to ${email}:`, e);
     }

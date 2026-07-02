@@ -25,13 +25,13 @@ function emailWrapper(title: string, body: string) {
   `;
 }
 
-async function send(to: string, subject: string, html: string) {
-  const { error } = await getResend().emails.send({
-    from: emailFrom(),
-    to,
-    subject,
-    html,
-  });
+async function send(to: string, subject: string, html: string, idempotencyKey?: string) {
+  const { error } = await getResend().emails.send(
+    { from: emailFrom(), to, subject, html },
+    // An idempotency key lets Resend drop a duplicate send (e.g. an edit that
+    // re-checks "notify", or an accidental resubmit) within its dedupe window.
+    idempotencyKey ? { idempotencyKey } : undefined,
+  );
   if (error) {
     console.error("Email send failed:", error);
     throw new Error(`Failed to send email: ${error.message}`);
@@ -166,7 +166,8 @@ export async function sendTeamEventEmail(
   eventTitle: string,
   eventType: string,
   startTime: Date,
-  location?: string
+  location?: string,
+  idempotencyKey?: string
 ) {
   const dateStr = startTime.toLocaleDateString("en-US", {
     weekday: "long",
@@ -197,7 +198,8 @@ export async function sendTeamEventEmail(
           ${locationLine}
         </div>
       `
-    )
+    ),
+    idempotencyKey
   );
 }
 
@@ -205,7 +207,8 @@ export async function sendTeamAnnouncementEmail(
   to: string,
   teamName: string,
   subject: string,
-  body: string
+  body: string,
+  idempotencyKey?: string
 ) {
   await send(
     to,
@@ -220,7 +223,8 @@ export async function sendTeamAnnouncementEmail(
           <p style="margin: 0; color: #374151; white-space: pre-wrap;">${body}</p>
         </div>
       `
-    )
+    ),
+    idempotencyKey
   );
 }
 

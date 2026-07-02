@@ -59,7 +59,7 @@ export async function createEvent(teamId: string, input: CreateEventInput) {
   // Send notifications if enabled
   if (data.notifyParents !== false) {
     try {
-      await sendEventEmails(safeTeamId, team.name, event.title, event.type, event.startTime, event.location);
+      await sendEventEmails(event.id, safeTeamId, team.name, event.title, event.type, event.startTime, event.location);
     } catch (e) {
       console.error("Failed to send event notification emails:", e);
     }
@@ -94,6 +94,7 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
       });
       if (team) {
         await sendEventEmails(
+          updated.id,
           event.team.id,
           team.name,
           updated.title,
@@ -129,6 +130,7 @@ export async function deleteEvent(id: string) {
 // ─── Email helpers ─────────────────────────────────────────
 
 async function sendEventEmails(
+  eventId: string,
   teamId: string,
   teamName: string,
   eventTitle: string,
@@ -142,15 +144,25 @@ async function sendEventEmails(
     select: { email: true, parentEmail: true, name: true },
   });
 
+  // Normalize before deduping so the same person listed under both athlete +
+  // parent email (or with different casing/whitespace) gets a single email.
   const emails = new Set<string>();
   for (const a of athletes) {
-    if (a.email) emails.add(a.email);
-    if (a.parentEmail) emails.add(a.parentEmail);
+    if (a.email) emails.add(a.email.trim().toLowerCase());
+    if (a.parentEmail) emails.add(a.parentEmail.trim().toLowerCase());
   }
 
   for (const email of emails) {
     try {
-      await sendTeamEventEmail(email, teamName, eventTitle, eventType, startTime, location ?? undefined);
+      await sendTeamEventEmail(
+        email,
+        teamName,
+        eventTitle,
+        eventType,
+        startTime,
+        location ?? undefined,
+        `event:${eventId}:${email}`,
+      );
     } catch (e) {
       console.error(`Failed to send event email to ${email}:`, e);
     }
