@@ -84,6 +84,21 @@ import {
   type OpponentScoreRow,
 } from "./results-tab";
 import { MeetResultsDialog, type DisciplineDTO } from "./meet-results-entry";
+import { StatTile } from "@/components/analytics/stat-tile";
+import { ChartCard } from "@/components/analytics/chart-card";
+import { Leaderboard, type LeaderboardRow } from "@/components/analytics/leaderboard";
+import {
+  MultiSeriesTrendChart,
+  ChartLegend,
+  type ChartSeries,
+} from "@/components/analytics/multi-series-chart";
+import {
+  athleteSeriesForMetric,
+  teamAverageSeries,
+  latestByAthlete,
+  toWideSeries,
+  fmtShortDate,
+} from "@/lib/analytics/insights";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -257,7 +272,14 @@ export function TeamTabs({
       </TabsList>
 
       <TabsContent value="dashboard">
-        <DashboardTab dashboard={dashboard} />
+        <DashboardTab
+          dashboard={dashboard}
+          results={results}
+          events={team.events}
+          metricDefinitions={metricDefinitions}
+          athleteMetricEntries={athleteMetricEntries}
+          teamMetricEntries={teamMetricEntries}
+        />
       </TabsContent>
       <TabsContent value="roster">
         <RosterTab
@@ -317,7 +339,49 @@ export function TeamTabs({
 
 // ─── Dashboard Tab ──────────────────────────────────────────
 
-function DashboardTab({ dashboard }: { dashboard: DashboardData }) {
+function DashboardTab({
+  dashboard,
+  results,
+  events,
+  metricDefinitions,
+  athleteMetricEntries,
+  teamMetricEntries,
+}: {
+  dashboard: DashboardData;
+  results: ResultsData;
+  events: TeamEvent[];
+  metricDefinitions: MetricDef[];
+  athleteMetricEntries: MetricEntryType[];
+  teamMetricEntries: MetricEntryType[];
+}) {
+  const nowTs = Date.now();
+  const upcoming = events
+    .filter((e) => new Date(e.startTime).getTime() >= nowTs)
+    .sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime));
+
+  const weekly = dashboard.weeklyActivity;
+  const sessionsSpark = weekly.map((w) => w.count);
+  const lastWeek = weekly.at(-1)?.count ?? 0;
+  const prevWeek = weekly.at(-2)?.count ?? 0;
+  const weekDelta = lastWeek - prevWeek;
+
+  const entriesCount = athleteMetricEntries.length + teamMetricEntries.length;
+
+  // Featured athlete metrics — those with recorded data, richest series first.
+  const featured = metricDefinitions
+    .filter((d) => d.scope === "ATHLETE")
+    .map((def) => ({
+      def,
+      series: athleteSeriesForMetric(athleteMetricEntries, def.id),
+    }))
+    .filter((x) => x.series.length > 0)
+    .sort(
+      (a, b) =>
+        b.series.reduce((n, s) => n + s.points.length, 0) -
+        a.series.reduce((n, s) => n + s.points.length, 0),
+    )
+    .slice(0, 2);
+
   const formatDate = (d: Date | null) => {
     if (!d) return "Never";
     return new Date(d).toLocaleDateString("en-US", {
@@ -337,35 +401,107 @@ function DashboardTab({ dashboard }: { dashboard: DashboardData }) {
 
   return (
     <div className="space-y-6">
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">Athletes</p>
-            <p className="text-2xl font-bold">{dashboard.athleteCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">This Week</p>
-            <p className="text-2xl font-bold">{dashboard.sessionsThisWeek}</p>
-            <p className="text-xs text-muted-foreground">sessions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">This Month</p>
-            <p className="text-2xl font-bold">{dashboard.sessionsThisMonth}</p>
-            <p className="text-xs text-muted-foreground">sessions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">Total Sessions</p>
-            <p className="text-2xl font-bold">{dashboard.totalSessions}</p>
-          </CardContent>
-        </Card>
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile
+          accent
+          label="Athletes"
+          value={dashboard.athleteCount}
+          icon={<Users className="size-4" />}
+        />
+        <StatTile
+          label="Sessions / wk"
+          value={lastWeek}
+          spark={sessionsSpark}
+          delta={
+            weekDelta !== 0
+              ? {
+                  value: String(Math.abs(weekDelta)),
+                  direction: weekDelta > 0 ? "up" : "down",
+                  good: weekDelta > 0,
+                }
+              : undefined
+          }
+        />
+        <StatTile
+          label="Upcoming"
+          value={upcoming.length}
+          sublabel={
+            upcoming[0]
+              ? `Next: ${formatDate(upcoming[0].startTime)} · ${upcoming[0].title}`
+              : "Nothing scheduled"
+          }
+        />
+        <StatTile
+          label="Metrics"
+          value={metricDefinitions.length}
+          sublabel={`${entriesCount} entries logged`}
+        />
+        <StatTile
+          label="Race results"
+          value={results.rows.length}
+          sublabel={`${results.meets.length} meet${results.meets.length !== 1 ? "s" : ""}`}
+        />
       </div>
+
+      {/* Featured metric analytics */}
+      {featured.length === 0 ? (
+        <ChartCard
+          title="Metric trends"
+          subtitle="Record metric entries to see team trends here"
+        >
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No metric data yet. Add entries in the Metrics tab.
+          </p>
+        </ChartCard>
+      ) : (
+        featured.map(({ def, series }) => {
+          const avg = teamAverageSeries(series);
+          const wide = toWideSeries(series, avg);
+          const chartSeries: ChartSeries[] = series.map((s) => ({
+            key: s.id,
+            name: s.name,
+          }));
+          const leaders: LeaderboardRow[] = latestByAthlete(series)
+            .sort((a, b) => b.value - a.value)
+            .map((r) => ({
+              id: r.id,
+              name: r.name,
+              value: `${r.value} ${def.unit}`,
+              delta:
+                r.delta == null
+                  ? undefined
+                  : {
+                      value: String(Math.abs(r.delta)),
+                      direction:
+                        r.delta > 0 ? "up" : r.delta < 0 ? "down" : "flat",
+                    },
+            }));
+          return (
+            <div key={def.id} className="grid gap-4 lg:grid-cols-3">
+              <ChartCard
+                className="lg:col-span-2"
+                title={def.name}
+                subtitle={`Per-athlete + team average · ${def.unit}`}
+              >
+                <ChartLegend series={chartSeries} showAverage />
+                <div className="mt-2">
+                  <MultiSeriesTrendChart
+                    data={wide}
+                    series={chartSeries}
+                    unit={def.unit}
+                    showAverage
+                    height={240}
+                  />
+                </div>
+              </ChartCard>
+              <ChartCard title="Latest by athlete" subtitle={def.name}>
+                <Leaderboard rows={leaders} />
+              </ChartCard>
+            </div>
+          );
+        })
+      )}
 
       {/* Weekly Activity Chart */}
       {weeklyChartData.length > 0 && (
@@ -2099,6 +2235,111 @@ function AssignToTeamDialog({
 
 // ─── Metrics Tab ────────────────────────────────────────────
 
+function MetricExplorer({
+  metricDefinitions,
+  athleteMetricEntries,
+  teamMetricEntries,
+}: {
+  metricDefinitions: MetricDef[];
+  athleteMetricEntries: MetricEntryType[];
+  teamMetricEntries: MetricEntryType[];
+}) {
+  const withData = metricDefinitions
+    .map((def) => {
+      if (def.scope === "ATHLETE") {
+        return { def, series: athleteSeriesForMetric(athleteMetricEntries, def.id) };
+      }
+      // Team-scope: fold into a single "Team" series.
+      const points = teamMetricEntries
+        .filter((e) => e.metricDefinition.id === def.id)
+        .map((e) => ({
+          date: fmtShortDate(e.date),
+          ts: new Date(e.date).getTime(),
+          value: e.value,
+        }))
+        .sort((a, b) => a.ts - b.ts);
+      return {
+        def,
+        series: points.length ? [{ id: "team", name: "Team", points }] : [],
+      };
+    })
+    .filter((x) => x.series.some((s) => s.points.length > 0));
+
+  const [selId, setSelId] = useState(withData[0]?.def.id ?? "");
+  const current = withData.find((x) => x.def.id === selId) ?? withData[0];
+
+  if (!current) return null;
+
+  const isAthlete = current.def.scope === "ATHLETE";
+  const avg = isAthlete ? teamAverageSeries(current.series) : undefined;
+  const wide = toWideSeries(current.series, avg);
+  const chartSeries: ChartSeries[] = current.series.map((s) => ({
+    key: s.id,
+    name: s.name,
+  }));
+  const leaders: LeaderboardRow[] = isAthlete
+    ? latestByAthlete(current.series)
+        .sort((a, b) => b.value - a.value)
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          value: `${r.value} ${current.def.unit}`,
+          delta:
+            r.delta == null
+              ? undefined
+              : {
+                  value: String(Math.abs(r.delta)),
+                  direction: r.delta > 0 ? "up" : r.delta < 0 ? "down" : "flat",
+                },
+        }))
+    : [];
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold">Team Analytics</h3>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartCard
+          className={isAthlete ? "lg:col-span-2" : "lg:col-span-3"}
+          title={current.def.name}
+          subtitle={`${current.def.unit}${isAthlete ? " · per-athlete + team average" : ""}`}
+          actions={
+            withData.length > 1 ? (
+              <Select value={selId} onValueChange={setSelId}>
+                <SelectTrigger className="h-8 w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {withData.map((x) => (
+                    <SelectItem key={x.def.id} value={x.def.id}>
+                      {x.def.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : undefined
+          }
+        >
+          <ChartLegend series={chartSeries} showAverage={isAthlete} />
+          <div className="mt-2">
+            <MultiSeriesTrendChart
+              data={wide}
+              series={chartSeries}
+              unit={current.def.unit}
+              showAverage={isAthlete}
+              height={260}
+            />
+          </div>
+        </ChartCard>
+        {isAthlete && (
+          <ChartCard title="Latest by athlete" subtitle={current.def.name}>
+            <Leaderboard rows={leaders} />
+          </ChartCard>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MetricsTab({
   teamId,
   athletes,
@@ -2215,6 +2456,13 @@ function MetricsTab({
 
   return (
     <div className="space-y-6">
+      {/* Team metric analytics */}
+      <MetricExplorer
+        metricDefinitions={metricDefinitions}
+        athleteMetricEntries={athleteMetricEntries}
+        teamMetricEntries={teamMetricEntries}
+      />
+
       {/* Metric Definitions */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
