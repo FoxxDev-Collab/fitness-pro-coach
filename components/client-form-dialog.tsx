@@ -39,12 +39,20 @@ type Client = {
 export function ClientFormDialog({
   client,
   children,
+  open: openProp,
+  onOpenChange,
 }: {
   client?: Client;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) =>
+    isControlled ? onOpenChange?.(o) : setOpenState(o);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: client?.name || "",
@@ -96,7 +104,7 @@ export function ClientFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{client ? "Edit Client" : "Add Client"}</DialogTitle>
@@ -152,7 +160,7 @@ export function ClientFormDialog({
             />
           </div>
           <div>
-            <Label className="text-yellow-400 flex items-center gap-1 mb-1">
+            <Label className="text-warning flex items-center gap-1 mb-1">
               <AlertTriangle size={14} /> Health Conditions
             </Label>
             <Textarea

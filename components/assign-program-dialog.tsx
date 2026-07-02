@@ -84,16 +84,13 @@ export function AssignProgramDialog({
         {selectedProgram ? (
           <div className="space-y-4">
             {healthConditions && (
-              <div className="bg-yellow-900/30 border border-yellow-700 rounded p-3 flex gap-2">
-                <AlertTriangle
-                  className="text-yellow-500 shrink-0"
-                  size={20}
-                />
+              <div className="flex gap-2.5 rounded-md border border-warning/50 bg-warning/10 p-3">
+                <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-yellow-400 text-sm">
+                  <p className="text-sm font-medium">
                     {clientName}&apos;s Conditions
                   </p>
-                  <p className="text-sm">{healthConditions}</p>
+                  <p className="text-sm text-muted-foreground">{healthConditions}</p>
                 </div>
               </div>
             )}

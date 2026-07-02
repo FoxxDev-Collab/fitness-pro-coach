@@ -128,7 +128,7 @@ export function ClientTabs({
 
   return (
     <Tabs defaultValue="overview">
-      <TabsList className="w-full flex-wrap h-auto gap-1">
+      <TabsList className="w-full flex-wrap h-auto! gap-1">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="programs">Programs</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>

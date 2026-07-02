@@ -15,9 +15,23 @@ import {
 } from "@/components/ui/dialog";
 import { deleteClient } from "@/lib/actions/clients";
 
-export function DeleteClientButton({ id, name }: { id: string; name: string }) {
+export function DeleteClientButton({
+  id,
+  name,
+  open: openProp,
+  onOpenChange,
+}: {
+  id: string;
+  name: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (o: boolean) =>
+    isControlled ? onOpenChange?.(o) : setOpenState(o);
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -34,11 +48,13 @@ export function DeleteClientButton({ id, name }: { id: string; name: string }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="destructive" size="icon">
-          <Trash2 size={16} />
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="destructive" size="icon">
+            <Trash2 size={16} />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete Client?</DialogTitle>
