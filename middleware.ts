@@ -13,6 +13,9 @@ const publicPaths = [
   "/join",
   "/portal/login",
   "/portal/verify",
+  // PWA assets must be fetchable without a session (anonymous install).
+  "/manifest.webmanifest",
+  "/sw.js",
 ];
 
 export function middleware(req: NextRequest) {
