@@ -6,6 +6,9 @@ const publicPaths = [
   "/signup",
   "/invite",
   "/api/auth",
+  // Cron endpoints authenticate themselves via CRON_SECRET (Bearer token from
+  // Vercel Cron); the middleware must not redirect them to /login first.
+  "/api/cron",
   "/forgot-password",
   "/reset-password",
   "/verify-email",

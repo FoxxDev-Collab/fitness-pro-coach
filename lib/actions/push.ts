@@ -9,7 +9,18 @@ type IncomingSubscription = {
   keys: { p256dh: string; auth: string };
 };
 
-/** Register (or refresh) the calling portal user's web-push device. */
+/**
+ * Register (or refresh) the calling portal user's web-push device.
+ *
+ * The upsert binds the endpoint to the current user, reassigning it if it was
+ * previously another user's. That is intentional: the endpoint is a per-browser
+ * capability the caller physically holds (their own `pushManager.subscribe`
+ * just produced it), so on a shared device the newly signed-in user must take
+ * it over — otherwise the previous user's team pushes would keep landing on a
+ * browser they've logged out of. It isn't an IDOR: a push endpoint is an
+ * unguessable, non-enumerable secret that is never exposed to other users, so
+ * an attacker can't present an endpoint they don't already control.
+ */
 export async function savePushSubscription(sub: IncomingSubscription) {
   const session = await requirePortal();
   if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
@@ -32,11 +43,14 @@ export async function savePushSubscription(sub: IncomingSubscription) {
   return { ok: true };
 }
 
-/** Remove a device the user turned notifications off on. */
+/** Remove a device the user turned notifications off on. Scoped to the caller
+ *  so a user can only delete their own subscription, never someone else's. */
 export async function deletePushSubscription(endpoint: string) {
-  await requirePortal();
+  const session = await requirePortal();
   if (typeof endpoint === "string" && endpoint.length > 0) {
-    await db.pushSubscription.deleteMany({ where: { endpoint } });
+    await db.pushSubscription.deleteMany({
+      where: { endpoint, userId: session.user.id },
+    });
   }
   return { ok: true };
 }
