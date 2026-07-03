@@ -63,6 +63,7 @@ export async function createEvent(teamId: string, input: CreateEventInput) {
     } catch (e) {
       console.error("Failed to send event notification emails:", e);
     }
+    await sendEventPush(safeTeamId, team.name, event, false);
   }
 
   revalidatePath(`/teams/${safeTeamId}`);
@@ -102,6 +103,7 @@ export async function updateEvent(id: string, input: UpdateEventInput) {
           updated.startTime,
           updated.location,
         );
+        await sendEventPush(event.team.id, team.name, updated, true);
       }
     } catch (e) {
       console.error("Failed to send event update notification emails:", e);
@@ -125,6 +127,44 @@ export async function deleteEvent(id: string) {
 
   await db.teamEvent.delete({ where: { id: safeId } });
   revalidatePath(`/teams/${event.team.id}`);
+}
+
+// ─── Push helper ───────────────────────────────────────────
+
+function eventPushBody(
+  type: string,
+  startTime: Date,
+  location: string | null | undefined,
+): string {
+  const label = type.charAt(0) + type.slice(1).toLowerCase();
+  const when = new Date(startTime).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return [label, when, location].filter(Boolean).join(" · ");
+}
+
+/** Best-effort push to a team's portal users about a new/updated event. */
+async function sendEventPush(
+  teamId: string,
+  teamName: string,
+  event: { id: string; title: string; type: string; startTime: Date; location: string | null },
+  updated: boolean,
+) {
+  try {
+    const { sendPushToTeam } = await import("@/lib/push/send");
+    await sendPushToTeam(teamId, {
+      title: `${teamName}: ${updated ? "Updated — " : ""}${event.title}`,
+      body: eventPushBody(event.type, event.startTime, event.location),
+      url: "/portal",
+      tag: `event:${event.id}`,
+    });
+  } catch (e) {
+    console.error("Failed to send event push:", e);
+  }
 }
 
 // ─── Email helpers ─────────────────────────────────────────

@@ -47,6 +47,17 @@ export async function createAnnouncement(teamId: string, input: CreateAnnounceme
     } catch (e) {
       console.error("Failed to send announcement emails:", e);
     }
+    try {
+      const { sendPushToTeam } = await import("@/lib/push/send");
+      await sendPushToTeam(safeTeamId, {
+        title: team.name,
+        body: data.subject,
+        url: "/portal",
+        tag: `announcement:${announcement.id}`,
+      });
+    } catch (e) {
+      console.error("Failed to send announcement push:", e);
+    }
   }
 
   revalidatePath(`/teams/${safeTeamId}`);

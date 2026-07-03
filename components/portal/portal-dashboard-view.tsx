@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { NotificationToggle } from "@/components/pwa/notification-toggle";
 import { AthleteRaces } from "@/app/(coach)/teams/[id]/results-tab";
 import {
   PortalSchedule,
@@ -37,6 +38,7 @@ export function PortalDashboardView({ dashboard }: { dashboard: PortalDashboard 
           </div>
           <div className="flex items-center gap-1">
             <InstallAppButton />
+            <NotificationToggle />
             <ThemeToggle />
             <form action={portalSignOut}>
               <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">

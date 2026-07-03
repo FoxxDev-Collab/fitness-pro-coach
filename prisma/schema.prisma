@@ -55,6 +55,9 @@ model User {
   // Athlete relationship (portal access)
   athleteProfile Athlete?  @relation("AthleteUser")
 
+  // Web-push devices (portal notifications)
+  pushSubscriptions PushSubscription[] @relation("UserPushSubscriptions")
+
   // Coach notes
   coachNotes         ClientNote[]       @relation("CoachNotes")
   teamNotes          TeamNote[]         @relation("CoachTeamNotes")
@@ -479,6 +482,8 @@ model TeamEvent {
   endTime       DateTime?
   allDay        Boolean   @default(false)
   notifyParents Boolean   @default(true)
+  // Set when the pre-event reminder push has been sent, so the cron only fires once.
+  reminderSentAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -681,6 +686,21 @@ model PortalJoinRequest {
   team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
+}
+
+// A registered web-push device for a portal user. One row per browser/device
+// (endpoint is unique). Pruned when the push service reports it gone (410/404).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserPushSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ─── Client Intake ─────────────────────────────────────────
