@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/login", "/signup", "/invite", "/api/auth", "/forgot-password", "/reset-password", "/verify-email"];
+const publicPaths = [
+  "/login",
+  "/signup",
+  "/invite",
+  "/api/auth",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  // Passwordless portal entry points (no session yet).
+  "/join",
+  "/portal/login",
+  "/portal/verify",
+];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -16,9 +28,11 @@ export function middleware(req: NextRequest) {
     req.cookies.get("__Secure-authjs.session-token") ||
     req.cookies.get("authjs.session-token");
 
-  // Not logged in → redirect to login
+  // Not logged in → redirect to the right login. Portal routes have their own
+  // passwordless login; everything else is the coach/admin login.
   if (!token) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    const dest = pathname.startsWith("/portal") ? "/portal/login" : "/login";
+    return NextResponse.redirect(new URL(dest, req.url));
   }
 
   // Let server components handle role-based access

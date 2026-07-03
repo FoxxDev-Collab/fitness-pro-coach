@@ -10,6 +10,7 @@ enum Role {
   ADMIN
   COACH
   CLIENT
+  PORTAL
 }
 
 // ─── Auth Models ────────────────────────────────────────────
@@ -404,6 +405,9 @@ model Team {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
+  // Per-season passwordless portal join code (parents + athletes). Rollover mints a fresh one.
+  joinCode        String?            @unique
+
   coachId         String
   coach           User               @relation("CoachTeams", fields: [coachId], references: [id], onDelete: Cascade)
 
@@ -413,6 +417,7 @@ model Team {
   announcements   TeamAnnouncement[]
   notes           TeamNote[]
   metricEntries   MetricEntry[]      @relation("TeamMetricEntries")
+  portalJoinRequests PortalJoinRequest[]
 
   @@index([coachId])
 }
@@ -645,6 +650,37 @@ model MeetOpponentScore {
   event        TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
+}
+
+// ─── Portal (parent + athlete passwordless access) ─────────
+// One-time magic-link token. Serves both parents (parentEmail match) and
+// athletes (own email match) — the email is the link; no per-role token type.
+model PortalMagicToken {
+  id        String   @id @default(cuid())
+  email     String
+  teamId    String?  // team context for first-time joins (null for returning logins)
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
+// A join attempt whose email matched no athlete on the team. Surfaced to the
+// coach so they can add/fix the email on the roster. Never leaks whether a
+// match existed to the requester.
+model PortalJoinRequest {
+  id         String    @id @default(cuid())
+  teamId     String
+  email      String
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }
 
 // ─── Client Intake ─────────────────────────────────────────

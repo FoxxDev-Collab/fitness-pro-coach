@@ -3,12 +3,14 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getImpersonationContext } from "@/lib/impersonation";
 
+export type AppRole = "ADMIN" | "COACH" | "CLIENT" | "PORTAL";
+
 export type EffectiveSession = {
   user: {
     id: string;
     name?: string | null;
     email?: string | null;
-    role: "ADMIN" | "COACH" | "CLIENT";
+    role: AppRole;
   };
   impersonation: { adminUserId: string; adminEmail: string | null } | null;
 };
@@ -55,7 +57,7 @@ export async function getEffectiveSession(): Promise<EffectiveSession | null> {
       id: real.user.id!,
       name: real.user.name,
       email: real.user.email,
-      role: real.user.role as "ADMIN" | "COACH" | "CLIENT",
+      role: real.user.role as AppRole,
     },
     impersonation: null,
   };
@@ -90,6 +92,19 @@ export async function requireAdmin() {
 export async function getCoachId() {
   const session = await requireCoach();
   return session.user.id;
+}
+
+/** Portal (parent/athlete) gate. Unauth or wrong role → the portal login. */
+export async function requirePortal() {
+  const session = await getEffectiveSession();
+  if (!session || session.user.role !== "PORTAL") redirect("/portal/login");
+  return session;
+}
+
+/** The email that scopes a portal viewer's data (their kids / themselves). */
+export async function getPortalEmail() {
+  const session = await requirePortal();
+  return session.user.email ?? null;
 }
 
 export async function getClientUserId() {

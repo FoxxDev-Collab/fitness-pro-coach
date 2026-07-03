@@ -245,6 +245,69 @@ export async function sendTeamAnnouncementEmail(
   );
 }
 
+/**
+ * Passwordless portal sign-in link (parents + athletes). The URL contains a
+ * single-use token and is app-generated (not escaped); `teamName` is coach
+ * input and IS escaped.
+ */
+export async function sendPortalMagicLinkEmail(
+  to: string,
+  verifyUrl: string,
+  teamName?: string | null,
+) {
+  const context = teamName
+    ? `to view <strong>${escapeHtml(teamName)}</strong>'s schedule and results`
+    : "to view your team's schedule and results";
+  await send(
+    to,
+    "Your Praevio sign-in link",
+    emailWrapper(
+      "Sign in to Praevio",
+      `
+        <p style="color: #6b7280; margin-bottom: 24px;">
+          Tap the button below ${context}. No password needed.
+        </p>
+        <a href="${verifyUrl}" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          Open Praevio
+        </a>
+        <p style="color: #9ca3af; font-size: 13px; margin-top: 24px;">
+          This link expires in 30 minutes and can be used once. If you didn't request it, you can ignore this email.
+        </p>
+      `
+    ),
+    // Dedupe accidental double-requests within Resend's window.
+    `portal-magic:${to}:${verifyUrl.slice(-16)}`,
+  );
+}
+
+/**
+ * The team's portal join link, sent by a coach to all parents/athletes. Leads
+ * to `/join/{code}` where the recipient enters their email to get a sign-in
+ * link. `teamName` is coach input and IS escaped; `joinUrl` is app-generated.
+ */
+export async function sendPortalJoinLinkEmail(
+  to: string,
+  joinUrl: string,
+  teamName: string,
+) {
+  await send(
+    to,
+    `Join ${teamName} on Praevio`,
+    emailWrapper(
+      "Follow your team on Praevio",
+      `
+        <p style="color: #6b7280; margin-bottom: 24px;">
+          <strong>${escapeHtml(teamName)}</strong> is on Praevio. Tap below and enter this email
+          address to see the schedule, results, and announcements on your phone — no password needed.
+        </p>
+        <a href="${joinUrl}" style="display: inline-block; background: #171717; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+          Join ${escapeHtml(teamName)}
+        </a>
+      `
+    )
+  );
+}
+
 export async function sendInviteEmail(to: string, inviteUrl: string, coachName: string) {
   await send(
     to,

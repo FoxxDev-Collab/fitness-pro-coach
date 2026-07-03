@@ -20,6 +20,7 @@ import {
   Pin,
   Archive,
   Timer,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +85,7 @@ import {
   type OpponentScoreRow,
 } from "./results-tab";
 import { MeetResultsDialog, type DisciplineDTO } from "./meet-results-entry";
+import { CoachPortalAccessCard } from "@/components/portal/coach-portal-access-card";
 import { formatTime, formatValue } from "@/lib/results/format";
 import type { UnitType } from "@/lib/results/types";
 import { StatTile } from "@/components/analytics/stat-tile";
@@ -279,6 +281,9 @@ export function TeamTabs({
         <TabsTrigger value="notes" className="gap-1.5">
           <StickyNote className="size-3.5" /> Notes
         </TabsTrigger>
+        <TabsTrigger value="portal" className="gap-1.5">
+          <Smartphone className="size-3.5" /> Portal
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="dashboard">
@@ -342,6 +347,9 @@ export function TeamTabs({
       </TabsContent>
       <TabsContent value="notes">
         <NotesTab teamId={team.id} notes={notes} />
+      </TabsContent>
+      <TabsContent value="portal">
+        <CoachPortalAccessCard teamId={team.id} />
       </TabsContent>
     </Tabs>
   );
