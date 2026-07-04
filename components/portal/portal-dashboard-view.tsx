@@ -19,6 +19,7 @@ import {
   PortalSchedule,
   PortalTeamScores,
   PortalAnnouncements,
+  PortalWorkouts,
 } from "@/components/portal/portal-views";
 import { portalSignOut } from "@/lib/actions/portal";
 import type { PortalDashboard } from "@/lib/portal/dashboard-types";
@@ -79,9 +80,14 @@ export function PortalDashboardView({ dashboard }: { dashboard: PortalDashboard 
               )}
             </div>
 
-            <Tabs defaultValue="schedule" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs key={current.athlete.id} defaultValue="schedule" className="w-full">
+              <TabsList
+                className={`grid w-full ${current.isSelf ? "grid-cols-5" : "grid-cols-4"}`}
+              >
                 <TabsTrigger value="schedule">Schedule</TabsTrigger>
+                {current.isSelf && (
+                  <TabsTrigger value="workouts">Workouts</TabsTrigger>
+                )}
                 <TabsTrigger value="results">Results</TabsTrigger>
                 <TabsTrigger value="team">Team</TabsTrigger>
                 <TabsTrigger value="news">News</TabsTrigger>
@@ -90,6 +96,11 @@ export function PortalDashboardView({ dashboard }: { dashboard: PortalDashboard 
               <TabsContent value="schedule" className="mt-5">
                 <PortalSchedule events={current.events} />
               </TabsContent>
+              {current.isSelf && (
+                <TabsContent value="workouts" className="mt-5">
+                  <PortalWorkouts assignments={current.assignments} />
+                </TabsContent>
+              )}
               <TabsContent value="results" className="mt-5">
                 <AthleteRaces rows={current.races} />
               </TabsContent>

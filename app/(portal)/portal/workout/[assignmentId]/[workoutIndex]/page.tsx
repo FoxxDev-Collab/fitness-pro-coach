@@ -1,33 +1,37 @@
 import { db } from "@/lib/db";
-import { notFound, redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { notFound } from "next/navigation";
+import { requirePortal } from "@/lib/auth-utils";
+import { normalizeEmail } from "@/lib/portal/linking";
 import { LiveSession } from "@/app/(coach)/session/[assignmentId]/[workoutIndex]/live-session";
 import { getExerciseHistory } from "@/lib/actions/sessions";
 
-export default async function ClientWorkoutPage({
+export default async function PortalWorkoutPage({
   params,
 }: {
   params: Promise<{ assignmentId: string; workoutIndex: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "CLIENT") redirect("/login");
+  const session = await requirePortal();
+  const email = normalizeEmail(session.user.email);
 
   const { assignmentId, workoutIndex: workoutIndexStr } = await params;
-  const workoutIndex = parseInt(workoutIndexStr);
+  const workoutIndex = parseInt(workoutIndexStr, 10);
 
-  // Verify this assignment belongs to the logged-in client
   const assignment = await db.assignment.findUnique({
     where: { id: assignmentId },
     include: {
-      client: { select: { userId: true, name: true, healthConditions: true, gender: true } },
-      workouts: {
-        include: { exercises: true },
-        orderBy: { order: "asc" },
-      },
+      athlete: { select: { email: true, name: true, gender: true } },
+      workouts: { include: { exercises: true }, orderBy: { order: "asc" } },
     },
   });
 
-  if (!assignment || !assignment.client || assignment.client.userId !== session.user.id) {
+  // Athlete-self only: the viewer's login email must match this athlete's own
+  // roster email. Parents (parentEmail match) never reach here.
+  if (
+    !assignment ||
+    !assignment.athlete ||
+    !email ||
+    normalizeEmail(assignment.athlete.email) !== email
+  ) {
     notFound();
   }
 
@@ -36,27 +40,27 @@ export default async function ClientWorkoutPage({
 
   const previousData = await getExerciseHistory(assignmentId, workoutIndex);
 
-  // Look up muscles for each exercise
   const exerciseIds = workout.exercises
     .map((e) => e.exerciseId)
     .filter(Boolean) as string[];
-  const exerciseRecords = exerciseIds.length > 0
-    ? await db.exercise.findMany({
-        where: { id: { in: exerciseIds } },
-        select: { id: true, muscles: true },
-      })
-    : [];
+  const exerciseRecords =
+    exerciseIds.length > 0
+      ? await db.exercise.findMany({
+          where: { id: { in: exerciseIds } },
+          select: { id: true, muscles: true },
+        })
+      : [];
   const muscleMap = new Map(exerciseRecords.map((e) => [e.id, e.muscles]));
 
   return (
     <LiveSession
       assignmentId={assignmentId}
       workoutIndex={workoutIndex}
-      clientName={assignment.client.name}
-      clientHealth={assignment.client.healthConditions}
+      clientName={assignment.athlete.name}
+      clientHealth={null}
       workoutName={workout.name}
       previousData={previousData}
-      returnTo="/dashboard"
+      returnTo="/portal"
       exercises={workout.exercises.map((e) => ({
         name: e.name,
         type: e.type,

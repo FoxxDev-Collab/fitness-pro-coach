@@ -42,6 +42,20 @@ export type PortalMeetScoreDTO = {
   groups: PortalScoreGroupDTO[];
 };
 
+export type PortalWorkoutDTO = {
+  index: number; // position within the assignment (matches SessionLog.workoutIndex)
+  name: string;
+  exerciseCount: number;
+  lastLoggedAt: string | null; // ISO
+};
+
+export type PortalAssignmentDTO = {
+  id: string;
+  name: string;
+  sessionsLogged: number;
+  workouts: PortalWorkoutDTO[];
+};
+
 export type PortalAthleteView = {
   athlete: { id: string; name: string };
   team: { id: string; name: string; sport: string | null; season: string | null };
@@ -49,6 +63,10 @@ export type PortalAthleteView = {
   races: RaceRow[]; // this athlete's own results → <AthleteRaces>
   teamScores: PortalMeetScoreDTO[];
   announcements: PortalAnnouncementDTO[];
+  // True when the viewer IS this athlete (login email === athlete's own email).
+  // Only self-viewers may log workouts; parents are read-only.
+  isSelf: boolean;
+  assignments: PortalAssignmentDTO[]; // populated only when isSelf
 };
 
 export type PortalDashboard = {

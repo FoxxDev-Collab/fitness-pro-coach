@@ -58,6 +58,7 @@ export function LiveSession({
   workoutName,
   exercises,
   previousData,
+  returnTo = "/clients",
 }: {
   assignmentId: string;
   workoutIndex: number;
@@ -66,6 +67,9 @@ export function LiveSession({
   workoutName: string;
   exercises: ExerciseTarget[];
   previousData?: ExerciseHistoryEntry[];
+  // Where to go after saving. Defaults to the coach's client list; the client
+  // portal passes /dashboard and the athlete portal passes /portal.
+  returnTo?: string;
 }) {
   const router = useRouter();
   const [currentExercise, setCurrentExercise] = useState(0);
@@ -215,7 +219,7 @@ export function LiveSession({
         exercises: sessionExercises,
       });
 
-      router.push(`/clients`);
+      router.push(returnTo);
     } catch (error) {
       console.error("Failed to save session:", error);
     } finally {

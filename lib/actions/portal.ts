@@ -270,10 +270,58 @@ export async function getPortalDashboard(): Promise<PortalDashboard> {
     select: {
       id: true,
       name: true,
+      email: true,
       teamId: true,
       team: { select: { id: true, name: true, sport: true, season: true } },
     },
   });
+
+  // The viewer may log workouts only for an athlete that IS them (own email
+  // matches the login). Fetch assignments just for those self-athletes.
+  const normalizedLogin = normalizeEmail(email);
+  const selfAthleteIds = linked
+    .filter((a) => normalizeEmail(a.email) === normalizedLogin)
+    .map((a) => a.id);
+
+  const assignmentsByAthlete = new Map<string, PortalDashboard["athletes"][number]["assignments"]>();
+  await Promise.all(
+    selfAthleteIds.map(async (athleteId) => {
+      const rows = await db.assignment.findMany({
+        where: { athleteId },
+        orderBy: { assignedAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          workouts: {
+            orderBy: { order: "asc" },
+            select: { id: true, name: true, _count: { select: { exercises: true } } },
+          },
+          logs: { select: { workoutIndex: true, date: true } },
+        },
+      });
+      assignmentsByAthlete.set(
+        athleteId,
+        rows.map((a) => ({
+          id: a.id,
+          name: a.name,
+          sessionsLogged: a.logs.length,
+          workouts: a.workouts.map((w, index) => {
+            const logs = a.logs.filter((l) => l.workoutIndex === index);
+            const last = logs.reduce<Date | null>(
+              (acc, l) => (!acc || l.date > acc ? l.date : acc),
+              null,
+            );
+            return {
+              index,
+              name: w.name,
+              exerciseCount: w._count.exercises,
+              lastLoggedAt: last ? last.toISOString() : null,
+            };
+          }),
+        })),
+      );
+    }),
+  );
 
   const teamIds = [...new Set(linked.map((a) => a.teamId))];
 
@@ -391,6 +439,7 @@ export async function getPortalDashboard(): Promise<PortalDashboard> {
 
   const athletes = linked.map((a) => {
     const td = teamData.get(a.teamId)!;
+    const isSelf = normalizeEmail(a.email) === normalizedLogin;
     return {
       athlete: { id: a.id, name: a.name },
       team: a.team,
@@ -398,6 +447,8 @@ export async function getPortalDashboard(): Promise<PortalDashboard> {
       races: td.rows.filter((r) => r.athleteId === a.id),
       teamScores: td.teamScores,
       announcements: td.announcements,
+      isSelf,
+      assignments: isSelf ? (assignmentsByAthlete.get(a.id) ?? []) : [],
     };
   });
 

@@ -1,11 +1,22 @@
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Megaphone, Timer, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  CalendarDays,
+  MapPin,
+  Megaphone,
+  Timer,
+  Trophy,
+  Dumbbell,
+  Play,
+} from "lucide-react";
 import { formatTime } from "@/lib/results/format";
 import type {
   PortalEventDTO,
   PortalMeetScoreDTO,
   PortalAnnouncementDTO,
+  PortalAssignmentDTO,
 } from "@/lib/portal/dashboard-types";
 
 const EVENT_LABEL: Record<string, string> = {
@@ -184,6 +195,68 @@ export function PortalTeamScores({ meets }: { meets: PortalMeetScoreDTO[] }) {
                 )}
               </div>
             ))}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export function PortalWorkouts({
+  assignments,
+}: {
+  assignments: PortalAssignmentDTO[];
+}) {
+  if (assignments.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          <Dumbbell className="mx-auto mb-2 size-6 opacity-50" />
+          No programs assigned yet. Your coach will add workouts here.
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {assignments.map((a) => (
+        <Card key={a.id}>
+          <CardContent className="pt-4 pb-3">
+            <p className="font-medium">{a.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {a.workouts.length} workout{a.workouts.length === 1 ? "" : "s"} ·{" "}
+              {a.sessionsLogged} logged
+            </p>
+            <div className="mt-3 space-y-2">
+              {a.workouts.map((w) => (
+                <div
+                  key={`${a.id}:${w.index}`}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{w.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {w.exerciseCount} exercise{w.exerciseCount === 1 ? "" : "s"}
+                      {w.lastLoggedAt && (
+                        <>
+                          {" "}
+                          · Last:{" "}
+                          {new Date(w.lastLoggedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <Button size="sm" asChild>
+                    <Link href={`/portal/workout/${a.id}/${w.index}`}>
+                      <Play className="size-3.5 mr-1.5" /> Start
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       ))}

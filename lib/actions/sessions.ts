@@ -11,6 +11,7 @@ import {
   type SaveSessionInput,
   type UpdateSessionInput,
 } from "@/lib/validations/sessions";
+import { sessionAccess } from "@/lib/sessions/access";
 
 function validateId(id: unknown, label: string): string {
   const parsed = cuid.safeParse(id);
@@ -58,11 +59,9 @@ export async function getExerciseHistory(
 
   if (!assignment) return [];
 
-  const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
-  const ownerUserId = assignment.client?.userId ?? assignment.athlete?.user?.id;
-  const isCoach = session.user.role === "COACH" && ownerCoachId === session.user.id;
-  const isClient = session.user.role === "CLIENT" && ownerUserId === session.user.id;
-  if (!isCoach && !isClient) throw new Error("Unauthorized");
+  if (!sessionAccess(session.user, assignment).authorized) {
+    throw new Error("Unauthorized");
+  }
 
   const workout = assignment.workouts[safeWorkoutIndex];
   if (!workout) return [];
@@ -168,12 +167,8 @@ export async function saveSession(input: SaveSessionInput) {
 
   if (!assignment) throw new Error("Assignment not found");
 
-  const ownerCoachId = assignment.client?.coachId ?? assignment.athlete?.team?.coachId;
-  const ownerUserId = assignment.client?.userId ?? assignment.athlete?.user?.id;
-  const isCoach = session.user.role === "COACH" && ownerCoachId === session.user.id;
-  const isClient = session.user.role === "CLIENT" && ownerUserId === session.user.id;
-
-  if (!isCoach && !isClient) throw new Error("Unauthorized");
+  const { isClient, authorized } = sessionAccess(session.user, assignment);
+  if (!authorized) throw new Error("Unauthorized");
 
   const sessionLog = await db.sessionLog.create({
     data: {
